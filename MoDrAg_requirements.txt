@@ -1,0 +1,17 @@
+torch
+langchain-huggingface
+langchain_core
+langchain_community
+langgraph
+rdkit
+matplotlib
+pubchempy
+gradio
+pillow
+gradio-client
+transformers
+huggingface-hub
+accelerate
+anthropic
+elevenlabs
+

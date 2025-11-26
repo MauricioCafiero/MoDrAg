@@ -1,0 +1,13 @@
+torch
+langchain-huggingface
+langchain_core
+langchain_community
+langgraph
+rdkit
+matplotlib
+pillow
+gradio
+transformers
+huggingface-hub
+accelerate
+

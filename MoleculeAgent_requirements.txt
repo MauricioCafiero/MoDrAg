@@ -1,0 +1,12 @@
+ddgs
+langchain-huggingface
+langchain_core
+langchain_community
+langgraph
+duckduckgo-search
+rdkit
+pubchempy
+matplotlib
+gradio
+transformers
+torch
