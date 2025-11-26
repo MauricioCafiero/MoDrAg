@@ -1,11 +1,9 @@
 # MoDrAg
-A modular drug-design AI Agent. See the descption of [abilities](#abilities) below and scroll down for a [description of all the files](#files) in this repo.
+A modular drug-design AI Agent. See the descption of the Agent's [abilities](#abilities), the [design philosphy](#philosophy) or a [description of all the files](#files) in this repo.
 
 ### Find a working demo of MoDrAg [on HuggingFace Spaces!](https://huggingface.co/spaces/cafierom/DDAgent)
-<img width="600" height="4200" alt="image" src="https://github.com/user-attachments/assets/019db235-cf98-4b98-8057-2252e948d139" />
-
 ## Abilities:
-A nicely featured drug-design pipeline, including:
+A nicely featured drug-design pipeline, including: 
 - Find Uniprot IDs for a protein,
 - Find Chembl IDs for a given Uniprot ID,
 - Find bioactive molecules for a given Chembl ID,
@@ -14,9 +12,21 @@ A nicely featured drug-design pipeline, including:
 - Get SMILES strings for molecules, or
 - get names for SMILES strings.
 - Search Pubchem for similar molecules or generate analogues.
-- Find Lipinki properties of molecules.
+- Find Lipinski properties of molecules.
 - Find pharmacophore overlap between two molecules.
 - Dock a molecule in a protein, get the score and the pose.
+  
+<img width="600" height="420" alt="image" src="https://github.com/user-attachments/assets/019db235-cf98-4b98-8057-2252e948d139" />
+
+## Philosophy
+- Everything ‘open,' avoiding using paid services, i.e. not using the OpenAI or Anthropic APIs, etc. where possible.
+- Modular sub-Agents each perform a family of tasks, easily upgradeable.
+- Hardwire tool and Agent calls into the Graph – meaning that you can plug in any AI/LLM; it does not have to be trained to call tools.
+- Use a small LM (~4B parameters) to save GPU/CPU for sub-agents performing calculations.
+  * HuggingFace’s smolLM has trouble parsing the chemistry
+  * Microsoft’s Phi4-mini-instruct works well!
+  * Looking to try IBM’s Granite 4 Nano!
+
 
 ## Files:
 - ```MoDrAg_HFS.py```: complete app for the Drug design agent. Upload to HuggingFace spaces and rename app.py.
