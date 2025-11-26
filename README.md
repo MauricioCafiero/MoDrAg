@@ -1,5 +1,5 @@
 # MoDrAg
-A modular drug-design AI Agent. See the descption of the Agent's [abilities](#abilities), the [design philosphy](#philosophy) or a [description of all the files](#files) in this repo.
+A *Mo*dular *Dr*ug-design AI *Ag*ent. See the descption of the Agent's [abilities](#abilities), the [design philosphy](#philosophy), a [description of all the files](#files) in this repo, or some [sample images](#images) below.
 
 ### Find a working demo of MoDrAg [on HuggingFace Spaces!](https://huggingface.co/spaces/cafierom/DDAgent)
 ## Abilities:
@@ -15,8 +15,6 @@ A nicely featured drug-design pipeline, including:
 - Find Lipinski properties of molecules.
 - Find pharmacophore overlap between two molecules.
 - Dock a molecule in a protein, get the score and the pose.
-  
-<img width="600" height="420" alt="image" src="https://github.com/user-attachments/assets/019db235-cf98-4b98-8057-2252e948d139" />
 
 ## Philosophy
 - Everything ‘open,' avoiding using paid services, i.e. not using the OpenAI or Anthropic APIs, etc. where possible.
@@ -33,4 +31,17 @@ A nicely featured drug-design pipeline, including:
 - ```MoleculeAgent_HFS.py, PropAgent_HFS.py, ProteinAgent_HFS.py, DockAgent_HFS.py```: sub-Agents for carrying out various tasks. Also ready to upload to a Hugginface space and rename as app.py.
 - Various ```requirements.txt``` files: the requirements for each of the Agents. 
 - ```Agent_template.py```: populate this file with one or more tools, add tool descriptions, and add the tools to the Graph and this file can be uploaded to a HuggingFace Space and serve as an Agent or MCP immediately.
-- ```node_template.py```: this inlcudes templates for adding your agent as a sub-agent to MoDrAg, code for adding your agent description to the Gradio GUI, and step-by-step directions on how to add all of the bits needed to integrate the new agent into the Graph. 
+- ```node_template.py```: this inlcudes templates for adding your agent as a sub-agent to MoDrAg, code for adding your agent description to the Gradio GUI, and step-by-step directions on how to add all of the bits needed to integrate the new agent into the Graph.
+
+## Images:
+
+### Agent GUI:
+<img width="600" height="420" alt="image" src="https://github.com/user-attachments/assets/019db235-cf98-4b98-8057-2252e948d139" />
+
+### Agent workflow:
+<img width="825" height="393" alt="image" src="https://github.com/user-attachments/assets/044fb2ab-8e7a-4942-9e8d-9b33554387af" />
+
+### SubAgent workflow:
+<img width="839" height="388" alt="image" src="https://github.com/user-attachments/assets/a35a562d-ac5d-481c-a0bd-f8d8291cf5f1" />
+
+
