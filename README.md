@@ -3,7 +3,7 @@ A *Mo*dular *Dr*ug-design AI *Ag*ent. See the descption of the Agent's [abilitie
 
 ### Find a working demo of MoDrAg [on HuggingFace Spaces!](https://huggingface.co/spaces/cafierom/DDAgent)
 ## Abilities:
-A nicely featured drug-design pipeline, including: 
+A nicely featured drug-design pipeline with voice reposponse, including: 
 
 **Premium Features**
 - Dock a molecule in a protein using AutoDock Vina, get the score and the pose.
@@ -23,6 +23,8 @@ A nicely featured drug-design pipeline, including:
 - Search Pubchem for similar molecules or generate analogues.
 - Find Lipinski properties of molecules.
 - Find pharmacophore overlap between two molecules.
+
+**Speech-to-text provided by a generous donation from [Eleven Labs](https://elevenlabs.io).**
 
 
 ## Philosophy
