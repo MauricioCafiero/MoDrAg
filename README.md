@@ -4,6 +4,15 @@ A *Mo*dular *Dr*ug-design AI *Ag*ent. See the descption of the Agent's [abilitie
 ### Find a working demo of MoDrAg [on HuggingFace Spaces!](https://huggingface.co/spaces/cafierom/DDAgent)
 ## Abilities:
 A nicely featured drug-design pipeline, including: 
+
+**Premium Features**
+- Dock a molecule in a protein using AutoDock Vina, get the score and the pose.
+- Use LightGBM to create a model to predict IC50 values of novel molecules. Trains itself using a Chembl Dataset which Modrag can find for you.
+- Use a GPT, finetuned on a Chembl dataset (found by MoDrAg), to generate novel ligands for a protein. <br>
+
+##### *these features will take a bit longer than the standards features. The last two require a Chembl dataset ID, which you can find using modrag. 
+  
+**Standard Features**  
 - Find Uniprot IDs for a protein,
 - Find Chembl IDs for a given Uniprot ID,
 - Find bioactive molecules for a given Chembl ID,
@@ -14,7 +23,7 @@ A nicely featured drug-design pipeline, including:
 - Search Pubchem for similar molecules or generate analogues.
 - Find Lipinski properties of molecules.
 - Find pharmacophore overlap between two molecules.
-- Dock a molecule in a protein, get the score and the pose.
+
 
 ## Philosophy
 - Everything ‘open,' avoiding using paid services, i.e. not using the OpenAI or Anthropic APIs, etc. where possible.
