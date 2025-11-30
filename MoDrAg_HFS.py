@@ -109,17 +109,18 @@ def molecule_node(state: State) -> State:
   client = Client("cafierom/MoleculeAgent")
   try:
     new_text, img = client.predict(full_query_task, query_smiles, query_name, api_name="/MoleculeAgent")
+    image = Image.open(img)
+    plt.imshow(image)
+    plt.axis('off')
+    plt.show()
+    image.save("Substitution_image.png")
   except:
     new_text = ''
   current_props_string += new_text
   #print(f"in mol node output: {new_text}")
   #print('===================================================')
 
-  filename = "Similars_image.png"
-  #img.save(filename)
-  #print(type(filename))
-
-  state["similars_img"] = filename
+  #state["similars_img"] = filename
   state["props_string"] = current_props_string
   state["which_tool"] += 1
 
@@ -173,6 +174,11 @@ def property_node(state: State) -> State:
 
   try:
     new_text, img = client.predict(query_task, query_smiles, query_reference, api_name="/PropAgent")
+    image = Image.open(img)
+    plt.imshow(image)
+    plt.axis('off')
+    plt.show()
+    image.save("Substitution_image.png")
   except:
     new_text = ''
   current_props_string += new_text
@@ -181,7 +187,7 @@ def property_node(state: State) -> State:
   #img.save(filename)
   print(type(filename))
 
-  state["similars_img"] = filename
+  #state["similars_img"] = filename
   state["props_string"] = current_props_string
   state["which_tool"] += 1
   return state
@@ -215,6 +221,11 @@ def protein_node(state: State) -> State:
           query_smiles,
           api_name="/ProteinAgent"
       )
+      image = Image.open(img)
+      plt.imshow(image)
+      plt.axis('off')
+      plt.show()
+      image.save("Substitution_image.png")
   except:
       new_text = ''
   current_props_string += new_text
@@ -260,6 +271,16 @@ def dock_node(state: State) -> State:
   state["which_tool"] += 1
   return state
 
+def get_smile(name: str):
+  try:
+    res = pcp.get_compounds(name, "name")
+    smiles = res[0].smiles
+    print(f'got smiles: {smiles}')
+    return smiles
+  except:
+    print(f'could not get smiles for {name}')
+    return None
+
 def first_node(state: State) -> State:
   '''
     The first node of the agent. This node receives the input and asks the LLM
@@ -304,12 +325,12 @@ QUERY_REFERENCE is the SMILES string of a second molecule that the user provided
 QUERY_UP_ID is a Uniprot ID the user provided. \
 QUERY_CHEMBL is a Chembl ID the user provided. \
 QUERY_PDB is a PDB ID the user provided. \n \
-Examine the USER INPUT below. It should contain a QUERY_TASK and either a QUERY_SMILES or QUERY_NAME. \
-It may also contain a QUERY_PROTEIN and a QUERY_REFERENCE. Your task is to extract any of these that are present. \n \
+Examine the USER INPUT below. It should always contain a QUERY_TASK. It should also contain one or more of the following: a QUERY_SMILES, QUERY_NAME, \
+a QUERY_PROTEIN, a QUERY_REFERENCE, a QUERY_UP_ID, a QUERY CHEMBL or a QUERY_PDB. Your task is to extract any of these that are present. \n \
 Report your results in the following format: # QUERY_TASK: the task # QUERY_SMILES: the smiles string # QUERY_NAME: the name # \
 QUERY_PROTEIN: the protein # QUERY_REFERENCE: the reference smiles string # QUERY_UP_ID: the uniprot id # QUERY_CHEMBL: the chembl id # QUERY_PDB: the pdb id. \
 If one of the requested items is not present in the USER INPUT, use NONE as the value. \n \
-The QUERY_NAME, QUERY_REFERENCE or QUERY_SMILES may appear in the QUERY_TASK as well. \n \
+The QUERY_NAME, QUERY_REFERENCE, QUERY_PROTEIN or QUERY_SMILES may appear in the QUERY_TASK as well. \n \
 USER INPUT: {user_input}.\n \
 '
 
@@ -409,7 +430,9 @@ PROPERTY_AGENT: Can calculate Lipinski properties of molecules, find the pharmac
 and generate analogues of molecules with their QED values. \n \
 PROTEIN_AGENT: Can call Uniprot to find uniprot ids for a protein, can call Chembl to find hits for a given uniprot id and report the  \
 number of bioactive molecules in the hit, can call Chembl to find a list bioactive molecules for a given chembl id and their IC50 values, \
-can call PDB to find the number of chains in a protein, the protein sequence and any small molecules in the protein structure. \n \
+can call PDB to find the number of chains in a protein, or the protein sequence and any small molecules in the protein structure, \
+predicts the IC50 value for the molecule indicated by the SMILES string provided using the LightGBM model, and can generate novel \
+molecules using a GPT.\n \
 DOCK_AGENT: Can dock a molecule in a protein using AutoDock Vina and return a docking score and the coordinates/XYZ positions of conformation of \
 the docked molecule. \n \
 QUERY_TASK: {query_task}.\n \
@@ -456,7 +479,15 @@ QUERY_PDB: {query_pdb}.\n \
       tool_choice = (agent1, agent2)
   else:
     tool_choice = (None, None)
-
+  
+  tools_that_need_smiles = ['PROPERTY_AGENT', 'DOCK_AGENT', 'PROTEIN_AGENT']
+  
+  if (state["query_smiles"] == None) or ('none' in state["query_smiles"].lower()):
+    for tool in tool_choice:
+      if tool in tools_that_need_smiles:
+        smile = get_smile(state["query_name"])
+        state["query_smiles"] = smile 
+        
   state["tool_choice"] = tool_choice
   state["which_tool"] = 0
   print(f"The chosen tools are: {tool_choice}")
@@ -617,7 +648,7 @@ claude_key = os.getenv("anthropic_key")
 anth_client = Anthropic(api_key=claude_key)
 
 @spaces.GPU
-def DDAgent(task):
+def DDAgent(task, voice_flag):
 
   chat_history.append(
                     {"role": "user", "content": task}
@@ -699,13 +730,20 @@ def DDAgent(task):
                     {"role": "assistant", "content": replies[-1]}
   )
 
-  return "", chat_history, img
+  if voice_flag == 'On':
+    audio_player = render_voice(replies[-1])
+  else:
+    audio_player = ''
+    
+  return "", chat_history, img, audio_player
 
 def clear_history():
   global chat_history
   chat_history = []
 
 eleven_key = os.getenv("eleven_key")
+#from google.colab import userdata
+#eleven_key = userdata.get('eleven_key')
 elevenlabs = ElevenLabs(api_key=eleven_key)
 
 def render_voice(text_in: str):
@@ -730,25 +768,61 @@ def render_voice(text_in: str):
 
   return audio_player
 
+def voice_from_file(file_name):
+  audio_file = file_name
+  with open(audio_file, 'rb') as audio_bytes:
+              audio = base64.b64encode(audio_bytes.read()).decode("utf-8")
+  audio_player = f'<audio src="data:audio/mpeg;base64,{audio}" controls autoplay></audio>'
+  return audio_player
+
 def mol_accordions():
   elita_text = 'Try queries like: Find the name of CCCF, find the smiles for paracetamol, or find molecules similar to paracetamol.'
-  audio_player = render_voice(elita_text)
-  return audio_player
+  messages = [{'role': 'assistant', 'content': elita_text}]
+  audio_player = voice_from_file('mol.mp3')
+  return audio_player, messages 
 
 def prop_accordions():
-  elita_text = 'Try queries like: Find Lipinski properties for CCCF, find pharmacophore-similarity between CCCF and CCCBr, or generate analogues of c1ccc(O)cc1.'
-  audio_player = render_voice(elita_text)
-  return audio_player
+  elita_text = 'Try queries like: Find Lipinski properties for CCCF, find pharmacophore-similarity between \
+  CCCF and CCCBr, or generate analogues of c1ccc(O)cc1.'
+  messages = [{'role': 'assistant', 'content': elita_text}]
+  audio_player = voice_from_file('Props.mp3')
+  return audio_player, messages
 
 def prot_accordions():
-  elita_text = 'Try queries like: Find Uniprot IDs for MAOB, Find PDB IDs for MAOB, or How many chains are in the PDB structure 4A7G' 
-  audio_player = render_voice(elita_text)
-  return audio_player
+  elita_text = 'Try queries like: find UNIPROT IDs for the protein MAOB; find PDB IDs for MAOB; how many chains \
+are in the PDB structure 4A7G; find PDB IDs matching the protein MAOB; list the bioactive molecules for the CHEMBL \
+ID CHEMBL2039; dock the molecule CCCC(F) in the protein DRD2; predict the IC50 value for CCCC(F) based on the CHEMBL \
+ID CHEMBL2039; or generate novel molecules based on the CHEMBL ID CHEMBL2039.'
+  messages = [{'role': 'assistant', 'content': elita_text}]
+  audio_player = voice_from_file('protein.mp3')
+  return audio_player, messages
 
 def dock_accordions():
-  elita_text = 'Try queries like: Dock CCCF in the protein MAOB.'
-  audio_player = render_voice(elita_text)
-  return audio_player
+  elita_text = 'Try queries like: dock CCC(F) in the protein MAOB'
+  messages = [{'role': 'assistant', 'content': elita_text}]
+  audio_player = voice_from_file('Dock.mp3')
+  return audio_player, messages
+
+def mol_workflow():
+  elita_text = "Starting with a molecule, try finding it's Lipinski properties, or its pharmacophore similarity to a known active. \
+Find similar molecules or, if it has substituted rings, find analogues."
+  messages = [{'role': 'assistant', 'content': elita_text}]
+  audio_player = voice_from_file('mol_wf.mp3')
+  return audio_player, messages
+
+def prot_workflow():
+  elita_text = "Starting with a protein, try searching for Uniprot IDs, followed by Chembl IDs. Then you can look for bioactive molecules \
+for each Chembl ID. You can also search for crystal structures in the PDB. Generate novel bioactive molecules based on a protein Chembl ID."
+  messages = [{'role': 'assistant', 'content': elita_text}]
+  audio_player = voice_from_file('prot_wf.mp3')
+  return audio_player, messages
+
+def combo_workflow():
+  elita_text ="Starting with a protein and a molecule, try docking the molecule in the protein. If you have a Chembl ID, predict the IC50 \
+value of the molecule in the protein."
+  messages = [{'role': 'assistant', 'content': elita_text}]
+  audio_player = voice_from_file('combo_wf.mp3')
+  return audio_player, messages
 
 with gr.Blocks() as forest:
   top = gr.Markdown('''
@@ -775,7 +849,10 @@ with gr.Blocks() as forest:
                   - report the number of bioactive molecules for a protein, organized by Chembl ID.
                   - report the SMILES and IC50 values of bioactive molecules for a particular Chembl ID.
                   - find protein sequences, report number fo chains.
-                  - find small molecules present in a PDB structure,
+                  - find small molecules present in a PDB structure.
+                  - find PDB IDs that match a protein.
+                  - predict the IC50 value of a small molecule based on a Chembl ID.
+                  - generate novel molecules based on a Chembl ID.
       ''')
     with gr.Accordion("Docking Agent - Click to open/close.", open=False) as dock:
       gr.Markdown('''
@@ -784,28 +861,39 @@ with gr.Blocks() as forest:
                   PLK1,HSD11B1,PARP1,PDE5A,PTGS2,ACHE,MAOB,CA2,GBA,HMGCR,NOS1,REN,DHFR,ESR1,ESR2,NR3C1,PGR,PPARA,PPARD,PPARG,AR,THRB,
                   ADAM17,F10,F2,BACE1,CASP3,MMP13,DPP4,ADRB1,ADRB2,DRD2,DRD3,ADORA2A,CYP2C9,CYP3A4,HSP90AA1
         ''')
+  with gr.Row():
+    molecule_workflow = gr.Button(value = "Sample Molecule Workflow")
+    protein_workflow = gr.Button(value = "Sample Protein Workflow")
+    combined_workflow = gr.Button(value = "Sample Combined Workflow")
 
   chatbot = gr.Chatbot(type="messages", placeholder="## Hello, I'm MoDrAg! Let's design together!")
 
   task = gr.Textbox(label="Type your messages here and hit enter.", scale = 2)
-  chat_btn = gr.Button(value = "Send")
+  with gr.Row():
+    chat_btn = gr.Button(value = "Send", scale = 2)
+    voice_choice = gr.Radio(choices = ['On', 'Off'],label="Audio Voice Response?", interactive=True, value='Off', scale = 2)
   
   clear = gr.ClearButton([task])
   pic = gr.Image(label="Molecules (if needed)")
   talk_ele = gr.HTML()
     
-  chat_btn.click(DDAgent, inputs = [task], outputs = [task, chatbot, pic])
-  task.submit(DDAgent, [task], [task, chatbot, pic])
-  mol.expand(mol_accordions, outputs = [talk_ele])
-  prop.expand(prop_accordions, outputs = [talk_ele])
-  prot.expand(prot_accordions, outputs = [talk_ele])
-  dock.expand(dock_accordions, outputs = [talk_ele])
+  chat_btn.click(DDAgent, inputs = [task, voice_choice], outputs = [task, chatbot, pic, talk_ele])
+  task.submit(DDAgent, [task,voice_choice], [task, chatbot, pic, talk_ele])
+  mol.expand(mol_accordions, outputs = [talk_ele, chatbot])
+  prop.expand(prop_accordions, outputs = [talk_ele, chatbot])
+  prot.expand(prot_accordions, outputs = [talk_ele, chatbot])
+  dock.expand(dock_accordions, outputs = [talk_ele, chatbot])
+  molecule_workflow.click(mol_workflow, outputs = [talk_ele, chatbot])
+  protein_workflow.click(prot_workflow, outputs = [talk_ele, chatbot])
+  combined_workflow.click(combo_workflow, outputs = [talk_ele, chatbot])
   clear.click(clear_history)
   
   @gr.render(inputs=top)
   def get_speech(args):
-    elita_text = "Hi, I'm Modrag! Let's design together!"
-    audio_player = render_voice(elita_text)
+    audio_file = 'MoDrAg_hello.mp3'
+    with open(audio_file, 'rb') as audio_bytes:
+                audio = base64.b64encode(audio_bytes.read()).decode("utf-8")
+    audio_player = f'<audio src="data:audio/mpeg;base64,{audio}" controls autoplay></audio>'
     talk_ele = gr.HTML(audio_player)
   
 
