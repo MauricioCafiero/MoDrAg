@@ -3,6 +3,7 @@ A *Mo*dular *Dr*ug-design AI *Ag*ent. See the descption of the Agent's [abilitie
 
 ### Find a working demo of MoDrAg [on HuggingFace Spaces!](https://huggingface.co/spaces/cafierom/DDAgent)
 ### Use MoDrAg's tools with OpenAI models with [Modrag Chat](https://github.com/MauricioCafiero/MoDrAg/blob/main/MoDrAg_Chat.md)
+### See the MoDrAg [demo video!](https://www.linkedin.com/posts/mauricio-cafiero-5481259b_excited-to-final-post-my-entry-for-gradio-activity-7401037808611577858-U9sd?utm_medium=ios_app&rcm=ACoAABUygsgB1ocjqc_UIBRFQJEZ3QMcuNRWSas&utm_source=social_share_send&utm_campaign=copy_link)
 ## Abilities:
 A nicely featured drug-design pipeline with voice reposponse, including: 
 
