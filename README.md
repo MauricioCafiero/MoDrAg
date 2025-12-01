@@ -49,7 +49,11 @@ A nicely featured drug-design pipeline with voice reposponse, including:
 ## Images:
 
 ### Agent GUI:
-<img width="600" height="420" alt="image" src="https://github.com/user-attachments/assets/019db235-cf98-4b98-8057-2252e948d139" />
+<img width="730" height="619" alt="image" src="https://github.com/user-attachments/assets/45a46be3-a6c4-4331-9e60-94363eff1e7d" />
+
+### Chat GUI
+<img width="719" height="591" alt="image" src="https://github.com/user-attachments/assets/77cabc7a-c971-4f02-8082-5dfa0056c94a" />
+
 
 ### Agent workflow:
 <img width="825" height="393" alt="image" src="https://github.com/user-attachments/assets/044fb2ab-8e7a-4942-9e8d-9b33554387af" />
