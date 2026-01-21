@@ -1,0 +1,263 @@
+from sentence_transformers import SentenceTransformer
+from gliner import GLiNER
+import re
+import numpy as np
+from modrag_molecule_functions import name_node, smiles_node, related_node
+from modrag_task_graphs import get_actives_for_protein, get_predictions_for_protein, dock_from_names
+from modrag_protein_functions import uniprot_node, listbioactives_node, getbioactives_node, predict_node, gpt_node, pdb_node, find_node, docking_node
+from modrag_property_functions import substitution_node, lipinski_node, pharmfeature_node
+
+smiles_pattern = r'[CHONFClBrISPcnosp0-9@+\-\[\]\(\)\/=#$%]{5,}'
+UPA_pattern = r'[OPQ][0-9][A-Z0-9]{3}[0-9]'
+UPA_pattern_2 = r'[A-NR-Z][0-9][A-Z][A-Z0-9]{2}[0-9][A-Z]?[A-Z0-9]*[0-9]?'
+PDB_pattern = r'\s[0-9][A-Z0-9]{3}'
+chembl_pattern = r'[Cc][Hh][Ee][Mm][Bb][Ll][0-9]{4,}'
+
+tool_descriptions = {
+    # modrag_protein_functions.py
+    'uniprot_node': 'Find the UNIPROT Accession codes (IDs) for this protein. Report the organisms and gene names.',
+    'listbioactives_node': 'Find the Chembl IDs for the protein with UNIPROT Accession code P091H7 and \
+report the number of bioactive molecules for each Chembl ID.',
+    'getbioactives_node': 'Find all of the bioactives molecule SMILES and IC50s for thos chembl ID.',
+    'predict_node': 'Predict the IC50 for this molecule based on the chembl ID chembl908564.',
+    'gpt_node': 'Use the Chembl dataset chembl98775 to generate novel molecules; do this by trainig a GPT.',
+    'pdb_node': 'Find the protein sequence and and ligands (small molecules) present in the crystal structure \
+represented by the  PDB ID 6YT5.',
+    'find_node': 'Find all the PDB IDs in the protein databank for this protein.',
+    'docking_node': 'Find the docking scores for these molecules molecules in this protein.',
+  
+    # modrag_property_functions.py
+    'substitution_node': 'Generate analogues of these molecules by substitution of different groups. Report the QED values as well.',
+    'lipinski_node': 'Find the Lipinski properties for these molecules; report the\
+QED, LogP, number of hydrogen bond donors and acceptors, molar mass, and polar surface area.',
+    'pharmfeature_node': 'Find the similarity in the pharmacophores between these two molecules.',
+    
+    # modrag_molecule_functions.py
+    'name_node': 'Find the name of this molecule c1cc(O)ccc1',
+    'smiles_node': 'Finds SMILES strings for cyclohexane and aspirin',
+    'related_node': 'Find molecules similar to c1cc(O)ccc1',
+    
+    # modrag_task_graphs.py
+    'get_actives_for_protein': 'Find the bioactive molecules for the protein DNA gyrase.',
+    'get_predictions_for_protein': 'Predict the IC50 value for c1cc(O)ccc1 in the protein DNA gyrase.',
+    'dock_from_names': 'Dock 1,3-butadiene and levadopa in the protein MAOB.'
+}
+
+tool_descriptions_keys = list(tool_descriptions.keys())
+
+tool_descriptions_values = list(tool_descriptions.values())
+
+def start_ner():
+  '''
+  '''
+  model_name =  "Shoriful025/biomedical_ner_roberta_base"
+  model = GLiNER.from_pretrained("anthonyyazdaniml/gliner-biomed-large-v1.0-disease-chemical-gene-variant-species-cellline-ner")
+
+  return model
+
+def smiles_regex(query: str):
+  '''
+  remove matches against PDB (how?) and Accession (easy)
+  '''
+  matches = re.findall(smiles_pattern, query)
+  matches = [m for m in matches if any(char not in ['c','n','o','s','p','l','r'] for char in m)]
+  matches = [m for m in matches if any(char not in ['0','1','2','3','4','5','6','7','8','9','l','P','O','Q'] for char in m)]
+  #matches = [m.strip(' ') for m in matches]
+  
+  return matches
+
+def uniprot_regex(query: str):
+  '''
+  '''
+  matches = re.findall(UPA_pattern, query)
+  matches = matches + re.findall(UPA_pattern_2, query)
+  
+  return matches
+
+def pdb_regex(query: str):
+  '''
+  '''
+  matches = re.findall(PDB_pattern, query)
+  matches = [m[1:] for m in matches]
+
+  return matches
+
+def chembl_regex(query: str):
+  '''
+  Accepts a query string and returns the detected ChEMBL IDs.
+    Args:
+        query: The input query string.
+    Returns:
+        matches: A list of detected ChEMBL IDs.
+  '''
+  matches = re.findall(chembl_pattern, query)
+
+  return matches
+
+def name_protein_ner(query: str, model):
+  '''
+  Accepts a query string and returns the detected protein and molecule entities.
+    Args:
+        query: The input query string.
+        model: The NER model to use.
+    Returns:
+        proteins: A list of detected protein names.
+        molecules: A list of detected molecule names.
+  '''
+  labels = ['Disease or phenotype', 'Chemical entity', 'Gene or gene product',
+  'Sequence variant', 'Organism', 'Cell line']
+
+  entities = model.predict_entities(query, labels, threshold=0.90)
+  molecules = []
+  proteins = []
+
+  for entity in entities:
+    if entity['label'] == 'Gene or gene product':
+      start_idx = entity['start']
+      end_idx = entity['end']
+      if ' ' not in query[start_idx:end_idx]:
+        proteins.append(query[start_idx:end_idx])
+
+    elif entity['label'] == 'Chemical entity':
+      start_idx = entity['start']
+      end_idx = entity['end']
+      if ' ' not in query[start_idx:end_idx]:
+        molecules.append(query[start_idx:end_idx])
+
+  return proteins, molecules
+
+def parse_input(query: str, model):
+  '''
+  Accepts a query string and returns the detected entities.
+    Args:
+        query: The input query string.
+        model: The NER model to use.
+    Returns:
+        present: A dictionary with counts of each entity type found.
+        proteins_list: A list of detected protein names.
+        molecules_list: A list of detected molecule names.
+        smiles_list: A list of detected SMILES strings.
+        uniprot_list: A list of detected Uniprot IDs.
+        pdb_list: A list of detected PDB IDs.
+        chembl_list: A list of detected ChEMBL IDs.
+  '''
+  proteins_list, molecules_list = name_protein_ner(query, model)
+  smiles_list = smiles_regex(query)
+  uniprot_list = uniprot_regex(query)
+  pdb_list = pdb_regex(query)
+  chembl_list = chembl_regex(query)
+
+  present = {
+      'proteins': len(proteins_list),
+      'molecules': len(molecules_list),
+      'smiles': len(smiles_list),
+      'uniprot': len(uniprot_list),
+      'pdb': len(pdb_list),
+      'chembl': len(chembl_list)
+  }
+
+  return present, proteins_list, molecules_list, smiles_list, uniprot_list, pdb_list, chembl_list
+
+
+def start_embedding(tool_descriptions_values: list[str]):
+  '''
+  '''
+  embed_model = SentenceTransformer("google/embeddinggemma-300m")
+  document_embeddings = embed_model.encode_document(tool_descriptions_values)
+
+  return document_embeddings, embed_model
+
+def define_tool_hash(tool: str, proteins_list, names_list, smiles_list, uniprot_list, pdb_list, chembl_list):
+  '''
+  '''
+  global tool_function_hash
+
+  if tool == 'smiles_node':
+    tool_function_hash = {
+        'smiles_node': [smiles_node, [names_list]]}
+  elif tool == 'name_node':
+    tool_function_hash = {
+        'name_node': [name_node, [smiles_list]]}
+  elif tool == 'related_node':
+    tool_function_hash = {
+        'related_node': [related_node, [smiles_list]]}
+  elif tool == 'get_predictions_for_protein':
+    tool_function_hash = {
+        'get_predictions_for_protein': [get_predictions_for_protein, [smiles_list, proteins_list[0]]]}
+  elif tool == 'dock_from_names':
+    tool_function_hash = {
+        'dock_from_names': [dock_from_names, [names_list, proteins_list[0]]]}
+  elif tool == 'get_actives_for_protein':
+    tool_function_hash = {
+        'get_actives_for_protein': [get_actives_for_protein, [proteins_list[0]]]}
+  elif tool == 'uniprot_node':
+    tool_function_hash = {
+        'uniprot_node': [uniprot_node, [proteins_list]]}
+  elif tool == 'listbioactives_node':
+    tool_function_hash = {
+        'listbioactives_node': [listbioactives_node, [uniprot_list]]}
+  elif tool == 'getbioactives_node':
+    tool_function_hash = {
+        'getbioactives_node': [getbioactives_node, [chembl_list]]}
+  elif tool == 'predict_node':
+    tool_function_hash = {
+        'predict_node': [predict_node, [smiles_list, chembl_list[0]]]}
+  elif tool == 'gpt_node':
+    tool_function_hash = {
+        'gpt_node': [gpt_node, [chembl_list[0]]]}
+  elif tool == 'pdb_node':
+    tool_function_hash = {
+        'pdb_node': [pdb_node, [pdb_list]]}
+  elif tool == 'find_node':
+    tool_function_hash = {
+        'find_node': [find_node, [proteins_list]]}
+  elif tool == 'docking_node':
+    tool_function_hash = {
+        'docking_node': [docking_node, [smiles_list, proteins_list[0]]]}
+  elif tool == 'substitution_node':
+    tool_function_hash = {
+        'substitution_node': [substitution_node, [smiles_list]]}
+  elif tool == 'lipinski_node':
+    tool_function_hash = {
+        'lipinski_node': [lipinski_node, [smiles_list]]}
+  elif tool == 'pharmfeature_node':
+    tool_function_hash = {
+        'pharmfeature_node': [pharmfeature_node, [smiles_list[0], smiles_list[1:]]]}
+  
+  return tool_function_hash
+  
+
+
+def intake(query: str, parse_model, embed_model, document_embeddings):
+  '''
+  '''
+  query_embeddings = embed_model.encode_query(query)
+
+  scores = embed_model.similarity(query_embeddings, document_embeddings)
+
+  best_tools = []
+  for i in range(3):
+    try:
+      best_idx = np.argmax(scores[0])
+      this_tool = tool_descriptions_keys[best_idx]
+      scores[0][best_idx] = -1
+    except:
+      this_tool = 'None'
+    best_tools.append(this_tool)
+
+  print(f"Chosen tool is: {best_tools[0]} for query: {query}")
+  print(f"Second choice is: {best_tools[1]}")
+  print(f"Third choice is: {best_tools[2]}")
+
+  present, proteins_list, names_list, smiles_list, uniprot_list, pdb_list, chembl_list = parse_input(query, parse_model)
+  for (entity_type, entity_list) in zip(present, [proteins_list, names_list, smiles_list, uniprot_list, pdb_list, chembl_list]):
+    if present[entity_type] > 0:
+      print(f'{entity_type}: {present[entity_type]}')
+      for entity in entity_list:
+        print(f'{entity_type}: {entity}')
+  
+  if present['molecules'] > 0 and present['smiles'] == 0:
+    smiles_list, _, _ = smiles_node(names_list)
+    print(f'Retrieved SMILES for {len(smiles_list)} molecules.')
+  
+  return best_tools, present, proteins_list, names_list, smiles_list, uniprot_list, pdb_list, chembl_list
