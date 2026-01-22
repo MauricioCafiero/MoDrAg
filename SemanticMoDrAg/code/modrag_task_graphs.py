@@ -49,8 +49,8 @@ def get_actives_for_protein(query_protein: str):
 def get_predictions_for_protein(smiles_list: list[str], query_protein: str):
   '''
   
-  Uses Uniprot to find chembl IDs for the 
-  protein, and then queries chembl for bioative molecules. 
+  Uses Uniprot to find chembl IDs for the protein, and then queries chembl for 
+  bioactive molecules to train a model and predict the activity of the given smiles.
 
   Args:
     smiles_list: A list of SMILES strings.
@@ -113,7 +113,7 @@ def dock_from_names(names_list: list[str], protein: str):
     dock_from_names_string += f'The SMILES for {names} is {smiles}. \n'
 
   #send for docking
-  scores, scores_string = docking_node(smiles_list, protein)
+  scores, scores_string, _ = docking_node(smiles_list, protein)
 
   for score, name in zip(scores, names_list):
     dock_from_names_string += f'The docking score for {name} is {score}. \n'

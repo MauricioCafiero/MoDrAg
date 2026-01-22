@@ -407,11 +407,25 @@ def gpt_node(chembl_id: str) -> (list[str], str, Image.Image):
   return smiles_list, gpt_string, [img]
 
 def get_protein_from_pdb(pdb_id):
+  '''
+    Helper function to get the protein information from the PDB database.
+    Args:
+      pdb_id: the PDB ID of the protein
+    Returns:
+      r.text: the PDB information as a string
+  '''
   url = f"https://files.rcsb.org/download/{pdb_id}.pdb"
   r = requests.get(url)
   return r.text
 
 def one_to_three(one_seq):
+  '''
+    Converts a one-letter amino acid sequence to a three-letter sequence.
+    Args:
+      one_seq: the one-letter amino acid sequence
+    Returns:
+      three_seq: the three-letter amino acid sequence
+  '''
   rev_aa_hash = {
       'A': 'ALA',
       'R': 'ARG',
@@ -443,6 +457,13 @@ def one_to_three(one_seq):
   return three_seq
 
 def three_to_one(three_seq):
+  '''
+  Converts a three-letter amino acid sequence to a one-letter sequence.
+  Args:
+    three_seq: the three-letter amino acid sequence
+  Returns:
+    one_seq: the one-letter amino acid sequence
+  '''
   aa_hash = {
       'ALA': 'A',
       'ARG': 'R',
@@ -475,7 +496,7 @@ def three_to_one(three_seq):
 
   return one_seq
 
-def pdb_node(test_pdb_list: list[str]) -> (list[str], list[str], str):
+def pdb_node(test_pdb_list: list[str]) -> (list[str], str):
   '''
     Accepts a PDB ID and queires the protein databank for the sequence of the protein, as well as other
     information such as ligands.
@@ -483,8 +504,8 @@ def pdb_node(test_pdb_list: list[str]) -> (list[str], list[str], str):
         test_pdb_list: the PDB IDs to query
       Returns:
         all_seqs: a list of the sequences for each PDB ID
-        all_ligands: a list of the ligands for each PDB ID
         total_pdb_string: a string containing the results of the PDB query.
+      (collects all ligands but does not return them currently)
   '''
 
   print(f"pdb toolS")

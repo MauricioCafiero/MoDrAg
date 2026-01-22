@@ -49,6 +49,9 @@ tool_descriptions_values = list(tool_descriptions.values())
 
 def start_ner():
   '''
+  Starts the NER model for biomedical named entity recognition.
+    Returns:
+        model: The NER model.
   '''
   model_name =  "Shoriful025/biomedical_ner_roberta_base"
   model = GLiNER.from_pretrained("anthonyyazdaniml/gliner-biomed-large-v1.0-disease-chemical-gene-variant-species-cellline-ner")
@@ -57,7 +60,11 @@ def start_ner():
 
 def smiles_regex(query: str):
   '''
-  remove matches against PDB (how?) and Accession (easy)
+  Accepts a query string and returns the detected SMILES strings.
+    Args:
+        query: The input query string.
+    Returns:
+        matches: A list of detected SMILES strings.
   '''
   matches = re.findall(smiles_pattern, query)
   matches = [m for m in matches if any(char not in ['c','n','o','s','p','l','r'] for char in m)]
@@ -68,6 +75,11 @@ def smiles_regex(query: str):
 
 def uniprot_regex(query: str):
   '''
+  Accepts a query string and returns the detected Uniprot IDs.
+    Args:
+        query: The input query string.
+    Returns:
+        matches: A list of detected Uniprot IDs.
   '''
   matches = re.findall(UPA_pattern, query)
   matches = matches + re.findall(UPA_pattern_2, query)
@@ -76,6 +88,11 @@ def uniprot_regex(query: str):
 
 def pdb_regex(query: str):
   '''
+  Accepts a query string and returns the detected PDB IDs.
+    Args:
+        query: The input query string.
+    Returns:
+        matches: A list of detected PDB IDs.
   '''
   matches = re.findall(PDB_pattern, query)
   matches = [m[1:] for m in matches]
@@ -161,6 +178,12 @@ def parse_input(query: str, model):
 
 def start_embedding(tool_descriptions_values: list[str]):
   '''
+  Starts the embedding model and encodes the tool descriptions.
+    Args:
+        tool_descriptions_values: A list of tool description strings.
+    Returns:
+        document_embeddings: The encoded document embeddings.
+        embed_model: The embedding model.
   '''
   embed_model = SentenceTransformer("google/embeddinggemma-300m")
   document_embeddings = embed_model.encode_document(tool_descriptions_values)
@@ -169,6 +192,17 @@ def start_embedding(tool_descriptions_values: list[str]):
 
 def define_tool_hash(tool: str, proteins_list, names_list, smiles_list, uniprot_list, pdb_list, chembl_list):
   '''
+  Defines the tool function hash based on the selected tool and input entities.
+    Args:
+        tool: The selected tool name.
+        proteins_list: A list of detected protein names.
+        names_list: A list of detected molecule names.
+        smiles_list: A list of detected SMILES strings.
+        uniprot_list: A list of detected Uniprot IDs.
+        pdb_list: A list of detected PDB IDs.
+        chembl_list: A list of detected ChEMBL IDs.
+    Returns:
+        tool_function_hash: A dictionary mapping tool names to their function and arguments.
   '''
   global tool_function_hash
 
@@ -230,6 +264,21 @@ def define_tool_hash(tool: str, proteins_list, names_list, smiles_list, uniprot_
 
 def intake(query: str, parse_model, embed_model, document_embeddings):
   '''
+  Accepts a query string and returns the best tool choices and detected entities.
+    Args:
+        query: The input query string.
+        parse_model: The NER model to use.
+        embed_model: The embedding model.
+        document_embeddings: The encoded document embeddings.
+    Returns:
+        best_tools: A list of the best tool choices.
+        present: A dictionary with counts of each entity type found.
+        proteins_list: A list of detected protein names.
+        names_list: A list of detected molecule names.
+        smiles_list: A list of detected SMILES strings.
+        uniprot_list: A list of detected Uniprot IDs.
+        pdb_list: A list of detected PDB IDs.
+        chembl_list: A list of detected ChEMBL IDs.
   '''
   query_embeddings = embed_model.encode_query(query)
 
