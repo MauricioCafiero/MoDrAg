@@ -1,0 +1,10 @@
+bitsandbytes
+pubchempy
+rdkit
+chembl_webresource_client
+rcsb-api
+deepchem
+dockstring
+openbabel-wheel
+gliner[tokenizers]
+sentence-transformers

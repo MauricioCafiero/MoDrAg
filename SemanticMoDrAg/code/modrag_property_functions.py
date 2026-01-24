@@ -102,6 +102,8 @@ def lipinski_node(smiles_list: list[str]) -> (list[float], str):
   total_lipinski_string = ''
 
   for smiles in smiles_list:
+    for ion in ['.[Na+]', '.[K+]', '.[Cl-]', '.[Br-]', '[Na+].', '[K+].', '[Cl-].', '[Br-].']:
+        smiles = smiles.replace(ion, '')
     lipinski_list = []
     try:
         mol = Chem.MolFromSmiles(smiles)
@@ -136,7 +138,7 @@ def lipinski_node(smiles_list: list[str]) -> (list[float], str):
         total_lipinski_list.append(lipinski_list)
     except:
         total_lipinski_list.append([])
-        total_lipinski_string += f"SMILES: {smiles}, Fail\n"
+        total_lipinski_string += f"SMILES: {smiles}, Could not get properties\n"
   
   return total_lipinski_list, total_lipinski_string, None
 

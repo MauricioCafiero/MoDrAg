@@ -1,4 +1,4 @@
-from input_parsing import start_ner, start_embedding, intake, define_tool_hash, tool_descriptions_values
+from input_parsing import start_ner, start_embedding, intake, define_tool_hash, tool_descriptions_values, second_intake
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 import torch
 from PIL import Image
@@ -26,9 +26,6 @@ class chat_manager():
     self.device = device
     self.chat_idx = 0
     self.chat_history = []
-
-    # create a blank image
-    
 
   def start_model_tokenizer(self):
     '''
@@ -82,7 +79,7 @@ class chat_manager():
         chat_history: The chat history.
     '''
     if self.chat_idx == 0:
-      self.chat_history = []
+      #self.chat_history = []
       local_chat_history = []
       local_chat_history.append(query)
 
@@ -168,8 +165,9 @@ or enriching information where appropriate."
       response = parts[1].strip('\n').strip('<end_of_turn>')
       local_chat_history.append(response)
       self.chat_history.append(local_chat_history)
+      self.chat_idx += 1
 
-      self.reset_chat()
+      # self.reset_chat()
 
       #convert self.results_images[0] from ipython display to an image for gradio
       try:
@@ -181,6 +179,37 @@ or enriching information where appropriate."
         return '', self.chat_history, img
       else:
         return '', self.chat_history, None
+    
+    #if chat_idx > 1, call just tool embedding and use existing lists
+    elif self.chat_idx > 1:
+      local_chat_history = []
+      local_chat_history.append(query)
+      self.query = query
+
+      context = self.chat_history[-1][-1]  # last response from the model
+      self.best_tools, self.present, self.proteins_list, self.names_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list = \
+      second_intake(self.query, context, self.parse_model, self.embed_model, self.document_embeddings)
+
+      response = f'Your new query is: {self.query}\n'
+      response += 'The tools chosen based on your query are:'
+      for i,tool in enumerate(self.best_tools):
+        response += '\n' + f'{i+1}. {tool} : {full_tool_descriptions[tool]}'
+
+      response += ' \n\n And the following information was found in your query:\n'
+      for (entity_type, entity_list) in zip(self.present, [self.proteins_list, self.names_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list]):
+        if self.present[entity_type] > 0:
+          response += f'{entity_type}: {self.present[entity_type]}\n'
+          for entity in entity_list:
+            response += f'{entity_type}: {entity}\n'
+      response += '\n To accept the #1 tool choice, hit enter; to choose 2 or 3, enter that number.'
+      response += '\n To start over, click the clear button and enter a new query.' 
+      self.chat_idx = 1
+
+      local_chat_history.append(response)
+      self.chat_history.append(local_chat_history)
+
+      return '', self.chat_history, None
+      
 
 full_tool_descriptions = {
   'smiles_node' : 'Queries Pubchem for the smiles string of the molecule based on the name.',
@@ -193,7 +222,7 @@ QED score (1 is most drug-like, 0 is least drug-like).',
   'pharmfeature_node': 'A tool to compare the pharmacophore features of a query molecule against\
 those of a reference molecule and report the pharmacophore features of both and the feature\
 score of the query molecule.',
-  'unitprot_node' : 'This tool takes in the user requested protein and searches UNIPROT for matches.\
+  'uniprot_node' : 'This tool takes in the user requested protein and searches UNIPROT for matches.\
 It returns a string scontaining the protein ID, gene name, organism, and protein name.',
   'listbioactives_node' : 'Accepts a UNIPROT ID and searches for bioactive molecules. Returns counts of\
 the bioactives found and their ChEMBL IDs.',
@@ -201,7 +230,7 @@ the bioactives found and their ChEMBL IDs.',
   'predict_node' : 'uses the current_bioactives.csv file from the get_bioactives node to fit the\
 Light GBM model and predict the IC50 for the current smiles.',
   'gpt_node' : 'Uses a Chembl dataset, previously stored in a CSV file by the get_bioactives node, to\
-to finetune a GPT model to generate novel molecules for the target protein.',
+finetune a GPT model to generate novel molecules for the target protein.',
   'pdb_node' : 'Accepts a PDB ID and queires the protein databank for the sequence of the protein, \
 as well as other information such as ligands.',
   'find_node': 'Accepts a protein name and searches the protein databack for PDB IDs that match along \

@@ -2,35 +2,37 @@ from sentence_transformers import SentenceTransformer
 from gliner import GLiNER
 import re
 import numpy as np
+from rdkit import Chem
 from modrag_molecule_functions import name_node, smiles_node, related_node
 from modrag_task_graphs import get_actives_for_protein, get_predictions_for_protein, dock_from_names
 from modrag_protein_functions import uniprot_node, listbioactives_node, getbioactives_node, predict_node, gpt_node, pdb_node, find_node, docking_node
 from modrag_property_functions import substitution_node, lipinski_node, pharmfeature_node
 
-smiles_pattern = r'[CHONFClBrISPcnosp0-9@+\-\[\]\(\)\/=#$%]{5,}'
+smiles_pattern = r'[CHONFClBrISPKacnosp0-9@+\-\[\]\(\)\/.=#$%]{5,}'
 UPA_pattern = r'[OPQ][0-9][A-Z0-9]{3}[0-9]'
 UPA_pattern_2 = r'[A-NR-Z][0-9][A-Z][A-Z0-9]{2}[0-9][A-Z]?[A-Z0-9]*[0-9]?'
 PDB_pattern = r'\s[0-9][A-Z0-9]{3}'
-chembl_pattern = r'[Cc][Hh][Ee][Mm][Bb][Ll][0-9]{4,}'
+chembl_pattern = r'[Cc][Hh][Ee][Mm][Bb][Ll][0-9]{3,}'
 
 tool_descriptions = {
     # modrag_protein_functions.py
-    'uniprot_node': 'Find the UNIPROT Accession codes (IDs) for this protein. Report the organisms and gene names.',
+    'uniprot_node': 'Find the UNIPROT Accession codes (IDs) for this DNA Gyrase. Report the organisms and gene names.',
     'listbioactives_node': 'Find the Chembl IDs for the protein with UNIPROT Accession code P091H7 and \
 report the number of bioactive molecules for each Chembl ID.',
-    'getbioactives_node': 'Find all of the bioactives molecule SMILES and IC50s for thos chembl ID.',
-    'predict_node': 'Predict the IC50 for this molecule based on the chembl ID chembl908564.',
+    'getbioactives_node': 'Find all of the bioactives molecule SMILES and IC50s for the Chembl ID CHEMBL8999.',
+    'predict_node': 'Predict the IC50 for dopamine based on the chembl ID chembl908564.',
     'gpt_node': 'Use the Chembl dataset chembl98775 to generate novel molecules; do this by trainig a GPT.',
     'pdb_node': 'Find the protein sequence and and ligands (small molecules) present in the crystal structure \
-represented by the  PDB ID 6YT5.',
-    'find_node': 'Find all the PDB IDs in the protein databank for this protein.',
-    'docking_node': 'Find the docking scores for these molecules molecules in this protein.',
-  
+represented by the PDB ID 6YT5.',
+    'find_node': 'Find all the PDB IDs in the protein databank for DNA gyrase.',
+    'docking_node': 'Find the docking scores for c1cccc1 and CCCCC=O in DNA gyrase. Dock c1cccc1 and CCCCC=O in the protein DNA gyrase.',
+
     # modrag_property_functions.py
-    'substitution_node': 'Generate analogues of these molecules by substitution of different groups. Report the QED values as well.',
-    'lipinski_node': 'Find the Lipinski properties for these molecules; report the\
+    'substitution_node': 'Generate analogues of O=C([O-])CCc1ccc(O)cc1 by substitution of different groups. Report the QED values as well.',
+    'lipinski_node': 'Find the Lipinski properties for c1cccc1 and CCCCC=O; report the\
 QED, LogP, number of hydrogen bond donors and acceptors, molar mass, and polar surface area.',
-    'pharmfeature_node': 'Find the similarity in the pharmacophores between these two molecules.',
+    'pharmfeature_node': 'Find the similarity in the pharmacophores between c1cccc1 and CCCCC=O. \
+Find the similarity in the pharmacophores between ibuprofen and aspirin.',
     
     # modrag_molecule_functions.py
     'name_node': 'Find the name of this molecule c1cc(O)ccc1',
@@ -69,9 +71,19 @@ def smiles_regex(query: str):
   matches = re.findall(smiles_pattern, query)
   matches = [m for m in matches if any(char not in ['c','n','o','s','p','l','r'] for char in m)]
   matches = [m for m in matches if any(char not in ['0','1','2','3','4','5','6','7','8','9','l','P','O','Q'] for char in m)]
+  matches = [m for m in matches if any(char not in ['0','1','2','3','4','5','6','7','8','9','.','-','+'] for char in m)]
   #matches = [m.strip(' ') for m in matches]
-  
-  return matches
+
+  modified_matches = []
+  for m in matches:
+    try:
+      mol = Chem.MolFromSmiles(m)
+      if mol is not None:
+        modified_matches.append(m)
+    except:
+      continue
+
+  return modified_matches
 
 def uniprot_regex(query: str):
   '''
@@ -299,6 +311,56 @@ def intake(query: str, parse_model, embed_model, document_embeddings):
   print(f"Third choice is: {best_tools[2]}")
 
   present, proteins_list, names_list, smiles_list, uniprot_list, pdb_list, chembl_list = parse_input(query, parse_model)
+  for (entity_type, entity_list) in zip(present, [proteins_list, names_list, smiles_list, uniprot_list, pdb_list, chembl_list]):
+    if present[entity_type] > 0:
+      print(f'{entity_type}: {present[entity_type]}')
+      for entity in entity_list:
+        print(f'{entity_type}: {entity}')
+  
+  if present['molecules'] > 0 and present['smiles'] == 0:
+    smiles_list, _, _ = smiles_node(names_list)
+    print(f'Retrieved SMILES for {len(smiles_list)} molecules.')
+  
+  return best_tools, present, proteins_list, names_list, smiles_list, uniprot_list, pdb_list, chembl_list
+
+def second_intake(query: str, context: str, parse_model, embed_model, document_embeddings):
+  '''
+  Accepts a query string and returns the best tool choices and detected entities.
+    Args:
+        query: The input query string.
+        context: The context string.
+        parse_model: The NER model to use.
+        embed_model: The embedding model.
+        document_embeddings: The encoded document embeddings.
+    Returns:
+        best_tools: A list of the best tool choices.
+        present: A dictionary with counts of each entity type found.
+        proteins_list: A list of detected protein names.
+        names_list: A list of detected molecule names.
+        smiles_list: A list of detected SMILES strings.
+        uniprot_list: A list of detected Uniprot IDs.
+        pdb_list: A list of detected PDB IDs.
+        chembl_list: A list of detected ChEMBL IDs.
+  '''
+  query_embeddings = embed_model.encode_query(query)
+
+  scores = embed_model.similarity(query_embeddings, document_embeddings)
+
+  best_tools = []
+  for i in range(3):
+    try:
+      best_idx = np.argmax(scores[0])
+      this_tool = tool_descriptions_keys[best_idx]
+      scores[0][best_idx] = -1
+    except:
+      this_tool = 'None'
+    best_tools.append(this_tool)
+
+  print(f"Chosen tool is: {best_tools[0]} for query: {query}")
+  print(f"Second choice is: {best_tools[1]}")
+  print(f"Third choice is: {best_tools[2]}")
+
+  present, proteins_list, names_list, smiles_list, uniprot_list, pdb_list, chembl_list = parse_input(context, parse_model)
   for (entity_type, entity_list) in zip(present, [proteins_list, names_list, smiles_list, uniprot_list, pdb_list, chembl_list]):
     if present[entity_type] > 0:
       print(f'{entity_type}: {present[entity_type]}')

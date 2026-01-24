@@ -173,6 +173,7 @@ def getbioactives_node(chembl_ids_list: list[str]) -> (list[str], str):
   for chembl_id in chembl_ids_list:
     try:
       #check if f'{chembl_id}_bioactives.csv' exists
+      chembl_id = chembl_id.upper()
       if os.path.exists(f'{chembl_id}_bioactives.csv'):
         print(f'Found {chembl_id}_bioactives.csv')
         total_bioact_df = pd.read_csv(f'{chembl_id}_bioactives.csv')
