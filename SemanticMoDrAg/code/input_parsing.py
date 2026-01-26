@@ -271,8 +271,75 @@ def define_tool_hash(tool: str, proteins_list, names_list, smiles_list, uniprot_
         'pharmfeature_node': [pharmfeature_node, [smiles_list[0], smiles_list[1:]]]}
   
   return tool_function_hash
-  
 
+def define_tool_reqs(tool: str, proteins_list, names_list, smiles_list, uniprot_list, pdb_list, chembl_list):
+  '''
+  Defines the tool function requirements based on the selected tool and input entities.
+    Args:
+        tool: The selected tool name.
+        proteins_list: A list of detected protein names.
+        names_list: A list of detected molecule names.
+        smiles_list: A list of detected SMILES strings.
+        uniprot_list: A list of detected Uniprot IDs.
+        pdb_list: A list of detected PDB IDs.
+        chembl_list: A list of detected ChEMBL IDs.
+    Returns:
+        tool_function_reqs: A dictionary mapping tool names to their required arguments.
+  '''
+  global tool_function_reqs
+
+  if tool == 'smiles_node':
+    tool_function_reqs = {
+        'smiles_node': [[names_list], ['molecule names']]}
+  elif tool == 'name_node':
+    tool_function_reqs = {
+        'name_node': [[smiles_list], ['SMILES strings']]}
+  elif tool == 'related_node':
+    tool_function_reqs = {
+        'related_node': [[smiles_list], ['SMILES strings']]}
+  elif tool == 'get_predictions_for_protein':
+    tool_function_reqs = {
+        'get_predictions_for_protein': [[smiles_list, proteins_list], ['SMILES strings', 'protein names']]}
+  elif tool == 'dock_from_names':
+    tool_function_reqs = {
+        'dock_from_names': [[names_list, proteins_list], ['molecule names', 'protein names']]}
+  elif tool == 'get_actives_for_protein':
+    tool_function_reqs = {
+        'get_actives_for_protein': [[proteins_list], ['protein names']]}
+  elif tool == 'uniprot_node':
+    tool_function_reqs = {
+        'uniprot_node': [[proteins_list], ['protein names']]}
+  elif tool == 'listbioactives_node':
+    tool_function_reqs = {
+        'listbioactives_node': [[uniprot_list], ['Uniprot Accession codes']]}
+  elif tool == 'getbioactives_node':
+    tool_function_reqs = {
+        'getbioactives_node': [[chembl_list], ['ChEMBL IDs']]}
+  elif tool == 'predict_node':
+    tool_function_reqs = {
+        'predict_node': [[smiles_list, chembl_list], ['SMILES strings', 'ChEMBL IDs']]}
+  elif tool == 'gpt_node':
+    tool_function_reqs = {
+        'gpt_node': [[chembl_list], ['ChEMBL IDs']]}
+  elif tool == 'pdb_node':
+    tool_function_reqs = {
+        'pdb_node': [[pdb_list], ['PDB IDs']]}
+  elif tool == 'find_node':
+    tool_function_reqs = {
+        'find_node': [[proteins_list], ['protein names']]}
+  elif tool == 'docking_node':
+    tool_function_reqs = {
+        'docking_node': [[smiles_list, proteins_list], ['SMILES strings', 'protein names']]}
+  elif tool == 'substitution_node':
+    tool_function_reqs = {
+        'substitution_node': [[smiles_list], ['SMILES strings']]}
+  elif tool == 'lipinski_node':
+    tool_function_reqs = {
+        'lipinski_node': [[smiles_list], ['SMILES strings']]}
+  elif tool == 'pharmfeature_node':
+    tool_function_reqs = {
+        'pharmfeature_node': [[smiles_list], ['SMILES strings']]}
+  return tool_function_reqs
 
 def intake(query: str, parse_model, embed_model, document_embeddings):
   '''

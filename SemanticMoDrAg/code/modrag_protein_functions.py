@@ -632,6 +632,7 @@ def docking_node(smiles_list: list[str], query_protein: str) -> (list[float], st
 
   for query_smiles in smiles_list:
     try:
+      query_smiles = query_smiles.replace('.[Na+]','').replace('.[Na+]','').replace('.[K+]','').replace('[K+].','').replace('.[Cl-]','').replace('[Cl-].','')
       target = load_target(query_protein)
       print("===============================================")
       print(f"Docking molecule with {cpuCount} cpu cores.")

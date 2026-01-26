@@ -1,4 +1,5 @@
-from input_parsing import start_ner, start_embedding, intake, define_tool_hash, tool_descriptions_values, second_intake
+from input_parsing import start_ner, start_embedding, intake, define_tool_hash, tool_descriptions_values, second_intake, parse_input
+from input_parsing import define_tool_reqs  
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 import torch
 from PIL import Image
@@ -66,7 +67,7 @@ class chat_manager():
     self.pdb_list = []
     self.chembl_list = []
     self.query = ''
-    self.present = ''
+    self.present = []
 
   def chat(self, query: str, ai_flag: str = 'AI'):
     '''
@@ -111,15 +112,35 @@ class chat_manager():
       local_chat_history.append(query)
 
       if query == '':
-        tool_choice = 0
+        self.tool_choice = 0
       else:
-        tool_choice = int(query) - 1
+        self.tool_choice = int(query) - 1
       
-      tool_function_hash = define_tool_hash(self.best_tools[tool_choice], self.proteins_list, 
+      ''' Check that the necessary data is present for the chosen tool'''
+      tool_function_reqs = define_tool_reqs(self.best_tools[self.tool_choice], self.proteins_list,
+                                            self.names_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list)
+      data_request = f'The necessary data was not found for tool {self.best_tools[self.tool_choice]}.\n'
+      missing_data = False
+      reqs_list = tool_function_reqs[self.best_tools[self.tool_choice]][0]
+      list_names = tool_function_reqs[self.best_tools[self.tool_choice]][1]
+
+      for sub_list, list_name in zip(reqs_list, list_names):
+        if len(sub_list) == 0:
+          data_request += f'Missing information for: {list_name}.\n'
+          missing_data = True
+      data_request += 'Please provide the necessary information to proceed.'
+      if missing_data:
+        local_chat_history.append(data_request)
+        self.chat_history.append(local_chat_history)
+        self.chat_idx = 999
+        return '', self.chat_history, None
+      ''' End data check: if not missing data, call tool function '''
+
+      tool_function_hash = define_tool_hash(self.best_tools[self.tool_choice], self.proteins_list,
                                             self.names_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list)
 
-      args_list = tool_function_hash[self.best_tools[tool_choice]][1]
-      results_tuple  = tool_function_hash[self.best_tools[tool_choice]][0](*args_list)
+      args_list = tool_function_hash[self.best_tools[self.tool_choice]][1]
+      results_tuple  = tool_function_hash[self.best_tools[self.tool_choice]][0](*args_list)
 
       results_list, results_string, self.results_images = results_tuple
 
@@ -181,7 +202,7 @@ or enriching information where appropriate."
         return '', self.chat_history, None
     
     #if chat_idx > 1, call just tool embedding and use existing lists
-    elif self.chat_idx > 1:
+    elif self.chat_idx == 2:
       local_chat_history = []
       local_chat_history.append(query)
       self.query = query
@@ -209,7 +230,49 @@ or enriching information where appropriate."
       self.chat_history.append(local_chat_history)
 
       return '', self.chat_history, None
+    
+    elif self.chat_idx == 999:
+      local_chat_history = []
+      local_chat_history.append(query)
+
+      present, proteins_list, names_list, smiles_list, uniprot_list, pdb_list, chembl_list = parse_input(query, self.parse_model)
+
+      if len(self.proteins_list) == 0 and len(proteins_list) > 0:
+        self.proteins_list = proteins_list
+      if len(self.names_list) == 0 and len(names_list) > 0:
+        self.names_list = names_list
+      if len(self.smiles_list) == 0 and len(smiles_list) > 0:
+        self.smiles_list = smiles_list
+      if len(self.uniprot_list) == 0 and len(uniprot_list) > 0:
+        self.uniprot_list = uniprot_list
+      if len(self.pdb_list) == 0 and len(pdb_list) > 0:
+        self.pdb_list = pdb_list
+      if len(self.chembl_list) == 0 and len(chembl_list) > 0:
+        self.chembl_list = chembl_list
+
+      for item in present:
+        self.present[item] += present[item]
       
+      response = f'Your new query is: {self.query}\n'
+      response += 'The tools chosen based on your query are:'
+      for i,tool in enumerate(self.best_tools):
+        response += '\n' + f'{i+1}. {tool} : {full_tool_descriptions[tool]}'
+
+      response += ' \n\n And the following information was found in your query:\n'
+      for (entity_type, entity_list) in zip(self.present, [self.proteins_list, self.names_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list]):
+        if self.present[entity_type] > 0:
+          response += f'{entity_type}: {self.present[entity_type]}\n'
+          for entity in entity_list:
+            response += f'{entity_type}: {entity}\n'
+      response += '\n To accept the #1 tool choice, hit enter; to choose 2 or 3, enter that number.'
+      response += '\n To start over, click the clear button and enter a new query.' 
+      self.chat_idx = 1
+
+      local_chat_history.append(response)
+      self.chat_history.append(local_chat_history)
+
+      return '', self.chat_history, None
+
 
 full_tool_descriptions = {
   'smiles_node' : 'Queries Pubchem for the smiles string of the molecule based on the name.',
