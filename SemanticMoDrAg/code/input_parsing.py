@@ -69,11 +69,11 @@ def smiles_regex(query: str):
         matches: A list of detected SMILES strings.
   '''
   matches = re.findall(smiles_pattern, query)
-  matches = [m for m in matches if any(char not in ['c','n','o','s','p','l','r'] for char in m)]
+  matches = [m for m in matches if any(char not in ['a','c','n','o','s','p','l','r'] for char in m)]
   matches = [m for m in matches if any(char not in ['0','1','2','3','4','5','6','7','8','9','l','P','O','Q'] for char in m)]
   matches = [m for m in matches if any(char not in ['0','1','2','3','4','5','6','7','8','9','.','-','+'] for char in m)]
   #matches = [m.strip(' ') for m in matches]
-
+  print(f'Initial SMILES matches: {matches}')
   modified_matches = []
   for m in matches:
     try:
@@ -82,7 +82,7 @@ def smiles_regex(query: str):
         modified_matches.append(m)
     except:
       continue
-
+  print(f'Modified SMILES matches: {modified_matches}')
   return modified_matches
 
 def uniprot_regex(query: str):
@@ -152,6 +152,9 @@ def name_protein_ner(query: str, model):
       end_idx = entity['end']
       if ' ' not in query[start_idx:end_idx]:
         molecules.append(query[start_idx:end_idx])
+  
+  molecules = list(set(molecules))
+  proteins = list(set(proteins))
 
   return proteins, molecules
 

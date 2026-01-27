@@ -3,7 +3,8 @@ from input_parsing import define_tool_reqs
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 import torch
 from PIL import Image
-import io
+import io, json
+from scholarly import scholarly
 
 def start_models():
     '''
@@ -69,7 +70,7 @@ class chat_manager():
     self.query = ''
     self.present = []
 
-  def chat(self, query: str, ai_flag: str = 'AI'):
+  def chat(self, query: str, ai_flag: str = 'AI', search_flag: str = 'No'):
     '''
       Chats with the model.
 
@@ -79,11 +80,23 @@ class chat_manager():
       Returns:
         chat_history: The chat history.
     '''
+    if search_flag == 'Yes':
+      self.chat_idx = 0
+      local_chat_history = []
+      local_chat_history.append(query)
+
+      top_hits, search_string, _ = websearch_node(query, self.embed_model)
+      local_chat_history.append(search_string)
+      self.chat_history.append(local_chat_history)
+
+      return '', self.chat_history, None
+
     if self.chat_idx == 0:
       #self.chat_history = []
       local_chat_history = []
       local_chat_history.append(query)
 
+      '''sends the query to the intake function to get best tools and parsed entities'''
       self.query = query
       self.best_tools, self.present, self.proteins_list, self.names_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list = \
       intake(self.query, self.parse_model, self.embed_model, self.document_embeddings)
@@ -113,8 +126,14 @@ class chat_manager():
 
       if query == '':
         self.tool_choice = 0
-      else:
+      elif query in ['1','2','3']:
         self.tool_choice = int(query) - 1
+      else:
+        response = 'Invalid input. Please enter 1, 2, or 3 to choose one of the tools above, or hit enter to accept the #1 tool choice.'
+        local_chat_history.append(response)
+        self.chat_history.append(local_chat_history)
+        self.chat_idx = 1
+        return '', self.chat_history, None
       
       ''' Check that the necessary data is present for the chosen tool'''
       tool_function_reqs = define_tool_reqs(self.best_tools[self.tool_choice], self.proteins_list,
@@ -136,16 +155,19 @@ class chat_manager():
         return '', self.chat_history, None
       ''' End data check: if not missing data, call tool function '''
 
+      ''' Get the chosen tool function and args, call it, and get results'''
       tool_function_hash = define_tool_hash(self.best_tools[self.tool_choice], self.proteins_list,
                                             self.names_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list)
 
       args_list = tool_function_hash[self.best_tools[self.tool_choice]][1]
       results_tuple  = tool_function_hash[self.best_tools[self.tool_choice]][0](*args_list)
 
-      results_list, results_string, self.results_images = results_tuple
+      results_list, self.results_string, self.results_images = results_tuple
+      print(self.results_string)
 
+      '''If manual mode, return results directly; if AI mode, send results to LLM for response generation'''
       if ai_flag == 'Manual':
-        local_chat_history.append(results_string)
+        local_chat_history.append(self.results_string)
         self.chat_history.append(local_chat_history)
         try:
           img = Image.open(io.BytesIO(self.results_images[0].data))
@@ -156,10 +178,11 @@ class chat_manager():
 
         return '', self.chat_history, img
 
+      ''' AI mode: send results to LLM for response generation'''
       role_text = "Answer the query using the information in the context. Add explanations \
 or enriching information where appropriate."
 
-      prompt = f'Query: {self.query}.\n Context: {results_string}'
+      prompt = f'Query: {self.query}.\n Context: {self.results_string}'
 
       messages = [[{
                   "role": "system",
@@ -184,6 +207,7 @@ or enriching information where appropriate."
 
       parts = outputs[0].split('<start_of_turn>model')
       response = parts[1].strip('\n').strip('<end_of_turn>')
+      self.latest_response = response
       local_chat_history.append(response)
       self.chat_history.append(local_chat_history)
       self.chat_idx += 1
@@ -201,13 +225,13 @@ or enriching information where appropriate."
       else:
         return '', self.chat_history, None
     
-    #if chat_idx > 1, call just tool embedding and use existing lists
+    #if chat_idx > 1, call second intake to get new tools based on latest response and last results
     elif self.chat_idx == 2:
       local_chat_history = []
       local_chat_history.append(query)
       self.query = query
 
-      context = self.chat_history[-1][-1]  # last response from the model
+      context = self.latest_response + '\n' + self.results_string
       self.best_tools, self.present, self.proteins_list, self.names_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list = \
       second_intake(self.query, context, self.parse_model, self.embed_model, self.document_embeddings)
 
@@ -232,11 +256,14 @@ or enriching information where appropriate."
       return '', self.chat_history, None
     
     elif self.chat_idx == 999:
+      ''' condition for missing data after tool choice '''
       local_chat_history = []
       local_chat_history.append(query)
 
+      ''' Parse the new input to get missing data '''
       present, proteins_list, names_list, smiles_list, uniprot_list, pdb_list, chembl_list = parse_input(query, self.parse_model)
 
+      ''' Update the existing lists with any new data only if the existing lists are empty'''
       if len(self.proteins_list) == 0 and len(proteins_list) > 0:
         self.proteins_list = proteins_list
       if len(self.names_list) == 0 and len(names_list) > 0:
@@ -307,6 +334,51 @@ for bioactive molecules to train a model and predict the activity of the given s
   'dock_from_names' : 'Accepts names of molecules and docks them in a given protein.'
 }
 
+def websearch_node(query: str, embed_model) -> (list[str], str, list):
+  '''
+  '''
+  search_query = scholarly.search_pubs(query)
+
+  titles = []
+  links = []
+  abstracts = []
+
+  for i in range(10):
+    item = next(search_query)
+    res_string = json.dumps(item)
+    res_dict = json.loads(res_string)
+    links.append(res_dict['pub_url'])
+    titles.append(res_dict['bib']['title'])
+    abstracts.append(res_dict['bib']['abstract'])
+
+  assert(len(titles) == len(links) == len(abstracts))
+  print(f'Found {len(titles)} results')
+  
+  abstract_embeddings = embed_model.encode_document(abstracts)
+  query_embeddings = embed_model.encode_query(query)
+
+  scores = embed_model.similarity(query_embeddings, abstract_embeddings)
+
+  max_hits = 10
+  if len(scores) < max_hits:
+    max_hits = len(scores)
+  top_hits = []
+  hits_idx = 0
+  while hits_idx < 10:
+    current_hit_idx = np.argmax(scores[0])
+    current_score = scores[0][current_hit_idx].item()
+    top_hits.append((titles[current_hit_idx], links[current_hit_idx], current_score))
+    scores[0][current_hit_idx] = -1
+    hits_idx += 1
+
+  search_string = f'The top 10 hits for your query are:\n'
+  i = 0
+  for title, link, score in top_hits:
+    search_string += f'{i}. {title}\nLink: {link}\nScore: {score:.3f}\n\n'
+    i += 1
+
+  return top_hits, search_string, None
+
 ## older functions retained for compatibility
 
 
@@ -342,3 +414,4 @@ def query_to_context(query: str, parse_model, embed_model, document_embeddings):
     results_list, results_string, results_images = results_tuple
     
     return results_list, results_string, results_images
+

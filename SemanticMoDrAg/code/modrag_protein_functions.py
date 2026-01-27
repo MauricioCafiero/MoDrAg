@@ -650,7 +650,7 @@ def docking_node(smiles_list: list[str], query_protein: str) -> (list[float], st
         atoms_list += atom.GetSymbol()
         pos = molH.GetConformer().GetAtomPosition(atom.GetIdx())
         xyz_string += f"{atom.GetSymbol()} {pos[0]} {pos[1]} {pos[2]}\n"
-      scores_string += f"Docking score for {query_smiles}: {score} kcal/mol \n\n"
+      scores_string += f"Docking score for molecule with SMILES: {query_smiles} is: {score} kcal/mol \n\n"
       scores_string += f"pose structure: {xyz_string}\n"
       scores_string += f"=========================================================\n"
 
