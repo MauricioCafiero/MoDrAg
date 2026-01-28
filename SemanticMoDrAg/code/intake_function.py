@@ -4,7 +4,8 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 import torch
 from PIL import Image
 import io, json
-from scholarly import scholarly
+from scholarly import scholarly, ProxyGenerator
+import numpy as np
 
 def start_models():
     '''
@@ -52,12 +53,14 @@ class chat_manager():
 
   def start_support_models(self):
     '''
+    Starts the supporting models for parsing and embedding.
     '''
 
     self.parse_model, self.document_embeddings, self.embed_model = start_models()
   
   def reset_chat(self):
     '''
+    Resets the chat state.
     '''
     self.chat_idx = 0
     self.best_tools = []
@@ -70,17 +73,18 @@ class chat_manager():
     self.query = ''
     self.present = []
 
-  def chat(self, query: str, ai_flag: str = 'AI', search_flag: str = 'No'):
+  def chat(self, query: str, mode_flag: str = 'AI'):
     '''
       Chats with the model.
 
       Args:
         query: The prompt to send to the model.
-        ai_flag: whether to use AI or not.
+        mode_flag: The mode to use (AI, Manual, Web Search, Chat).
       Returns:
         chat_history: The chat history.
     '''
-    if search_flag == 'Yes':
+    ''' Handle Web Search Mode ================================================'''
+    if mode_flag == 'Web Search':
       self.chat_idx = 0
       local_chat_history = []
       local_chat_history.append(query)
@@ -90,7 +94,52 @@ class chat_manager():
       self.chat_history.append(local_chat_history)
 
       return '', self.chat_history, None
+    
+    ''' Handle Chat Mode ====================================================='''
+    if mode_flag == 'Chat':
+      self.chat_idx  = 0
+      local_chat_history = []
+      local_chat_history.append(query)
+      self.query = query
 
+      role_text = "You are part of a drug design agent. Answer user questions to the best of your ability. \
+If the user asks any innapropriate questions, respond with 'I'm sorry, I can't assist with that request.' \
+If the user asks for general information, provide a concise and accurate answer. If the user asks about drug design, \
+provide detailed and informative answers or refer them to the tools. They can access the tools by switching to AI or \
+manual mode."
+
+      prompt = f'Query: {self.query}.'
+
+      messages = [[{
+                  "role": "system",
+                  "content": [{"type": "text", "text": role_text},]
+              },{
+                  "role": "user",
+                  "content": [{"type": "text", "text": prompt},]
+              }]]
+
+      inputs = self.tokenizer.apply_chat_template(
+          messages,
+          add_generation_prompt=True,
+          tokenize=True,
+          return_dict=True,
+          return_tensors="pt",
+      ).to(self.llm_model.device) #.to(torch.bfloat16)
+
+      with torch.inference_mode():
+        outputs = self.llm_model.generate(**inputs, max_new_tokens=500, do_sample=True, temperature=0.5)
+
+      outputs = self.tokenizer.batch_decode(outputs, )
+
+      parts = outputs[0].split('<start_of_turn>model')
+      response = parts[1].strip('\n').strip('<end_of_turn>')
+      self.latest_response = response
+      local_chat_history.append(response)
+      self.chat_history.append(local_chat_history)
+      
+      return '', self.chat_history, None
+
+    ''' Normal Mode: not chat or web search - First interaction: get best tools and parsed entities '''
     if self.chat_idx == 0:
       #self.chat_history = []
       local_chat_history = []
@@ -120,6 +169,7 @@ class chat_manager():
 
       return '', self.chat_history, None
 
+    #''' Second interaction: get tool choice and call tool function, return results ============='''
     elif self.chat_idx == 1:
       local_chat_history = []
       local_chat_history.append(query)
@@ -166,7 +216,7 @@ class chat_manager():
       print(self.results_string)
 
       '''If manual mode, return results directly; if AI mode, send results to LLM for response generation'''
-      if ai_flag == 'Manual':
+      if mode_flag == 'Manual':
         local_chat_history.append(self.results_string)
         self.chat_history.append(local_chat_history)
         try:
@@ -225,7 +275,7 @@ or enriching information where appropriate."
       else:
         return '', self.chat_history, None
     
-    #if chat_idx > 1, call second intake to get new tools based on latest response and last results
+    #'''if chat_idx > 1, call second intake to get new tools based on latest response and last results'''
     elif self.chat_idx == 2:
       local_chat_history = []
       local_chat_history.append(query)
@@ -334,48 +384,73 @@ for bioactive molecules to train a model and predict the activity of the given s
   'dock_from_names' : 'Accepts names of molecules and docks them in a given protein.'
 }
 
-def websearch_node(query: str, embed_model) -> (list[str], str, list):
+def websearch_node(query: str, embed_model, proxy_flag: bool = True) -> (list[str], str, list):
   '''
+  Performs a web search using scholarly and ranks results based on similarity to the query.
+  Args:
+      query (str): The input query string.
+      embed_model: The embedding model.
+  Returns:  
+      top_hits (list[str]): List of top hit titles and links.
+      search_string (str): String representation of the top hits.
+      None: Placeholder for images (not used here).
   '''
-  search_query = scholarly.search_pubs(query)
+  try:
+    if proxy_flag:
+      pg = ProxyGenerator() 
+      success = pg.FreeProxies()
+      if success:
+        pg.FreeProxies()
+        scholarly.use_proxy(pg)
 
-  titles = []
-  links = []
-  abstracts = []
+    scholarly.set_timeout(15) 
 
-  for i in range(10):
-    item = next(search_query)
-    res_string = json.dumps(item)
-    res_dict = json.loads(res_string)
-    links.append(res_dict['pub_url'])
-    titles.append(res_dict['bib']['title'])
-    abstracts.append(res_dict['bib']['abstract'])
+    search_query = scholarly.search_pubs(query)
+    print(f'Search generator created for query: {query}')
 
-  assert(len(titles) == len(links) == len(abstracts))
-  print(f'Found {len(titles)} results')
-  
-  abstract_embeddings = embed_model.encode_document(abstracts)
-  query_embeddings = embed_model.encode_query(query)
+    titles = []
+    links = []
+    abstracts = []
 
-  scores = embed_model.similarity(query_embeddings, abstract_embeddings)
+    for i in range(10):
+      item = next(search_query)
+      res_string = json.dumps(item)
+      res_dict = json.loads(res_string)
+      links.append(res_dict['pub_url'])
+      titles.append(res_dict['bib']['title'])
+      abstracts.append(res_dict['bib']['abstract'])
+      print(f'Found result {i+1}')
 
-  max_hits = 10
-  if len(scores) < max_hits:
-    max_hits = len(scores)
-  top_hits = []
-  hits_idx = 0
-  while hits_idx < 10:
-    current_hit_idx = np.argmax(scores[0])
-    current_score = scores[0][current_hit_idx].item()
-    top_hits.append((titles[current_hit_idx], links[current_hit_idx], current_score))
-    scores[0][current_hit_idx] = -1
-    hits_idx += 1
+    assert(len(titles) == len(links) == len(abstracts))
+    print(f'Found {len(titles)} results')
+    
+    abstract_embeddings = embed_model.encode_document(abstracts)
+    query_embeddings = embed_model.encode_query(query)
 
-  search_string = f'The top 10 hits for your query are:\n'
-  i = 0
-  for title, link, score in top_hits:
-    search_string += f'{i}. {title}\nLink: {link}\nScore: {score:.3f}\n\n'
-    i += 1
+    scores = embed_model.similarity(query_embeddings, abstract_embeddings)
+
+    max_hits = 10
+    if len(scores) < max_hits:
+      max_hits = len(scores)
+    top_hits = []
+    hits_idx = 0
+    while hits_idx < 10:
+      current_hit_idx = np.argmax(scores[0])
+      current_score = scores[0][current_hit_idx].item()
+      top_hits.append((titles[current_hit_idx], links[current_hit_idx], current_score))
+      scores[0][current_hit_idx] = -1
+      hits_idx += 1
+
+    search_string = f'The top 10 hits for your query are:\n'
+    i = 0
+    for title, link, score in top_hits:
+      search_string += f'{i}. {title}\nLink: {link}\nScore: {score:.3f}\n\n'
+      i += 1
+    print('Web search completed successfully.')
+  except:
+    top_hits = []
+    search_string = 'Web search failed. Please try again later.'
+    print('Web search failed due to an exception.')
 
   return top_hits, search_string, None
 
