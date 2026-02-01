@@ -152,7 +152,8 @@ def name_protein_ner(query: str, model):
       end_idx = entity['end']
       if ' ' not in query[start_idx:end_idx]:
         molecules.append(query[start_idx:end_idx])
-  
+
+  molecules = [m.lower() for m in molecules]
   molecules = list(set(molecules))
   proteins = list(set(proteins))
 
@@ -179,6 +180,14 @@ def parse_input(query: str, model):
   pdb_list = pdb_regex(query)
   chembl_list = chembl_regex(query)
 
+  # drop duplicates in each list
+  proteins_list = list(set(proteins_list))
+  molecules_list = list(set(molecules_list))
+  smiles_list = list(set(smiles_list))
+  uniprot_list = list(set(uniprot_list))
+  pdb_list = list(set(pdb_list))
+  chembl_list = list(set(chembl_list))
+  
   present = {
       'proteins': len(proteins_list),
       'molecules': len(molecules_list),

@@ -1,11 +1,19 @@
 from input_parsing import start_ner, start_embedding, intake, define_tool_hash, tool_descriptions_values, second_intake, parse_input
-from input_parsing import define_tool_reqs  
+from input_parsing import define_tool_reqs, smiles_regex
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 import torch
 from PIL import Image
-import io, json
+import io, json, pprint as pp
 from scholarly import scholarly, ProxyGenerator
 import numpy as np
+import ast
+
+# imports for HF Spaces
+import torch
+import gradio as gr
+# end imports for HF Spaces
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 def start_models():
     '''
@@ -28,7 +36,14 @@ class chat_manager():
     self.model_id = model_id
     self.device = device
     self.chat_idx = 0
-    self.chat_history = []
+
+    #check to see if chat history file exists, if so load it
+    try:
+      with open('chat_session_history.txt', 'r') as f:
+        data_string = f.read()
+        self.chat_history = ast.literal_eval(data_string)
+    except:
+      self.chat_history = []
 
   def start_model_tokenizer(self):
     '''
@@ -83,7 +98,10 @@ class chat_manager():
       Returns:
         chat_history: The chat history.
     '''
-    ''' Handle Web Search Mode ================================================'''
+    ''' ===============================================================================================
+    Handle Web Search Mode  - 
+    if user chooses web search mode, send query to websearch node and return results
+    ==================================================================================================='''
     if mode_flag == 'Web Search':
       self.chat_idx = 0
       local_chat_history = []
@@ -92,10 +110,15 @@ class chat_manager():
       top_hits, search_string, _ = websearch_node(query, self.embed_model)
       local_chat_history.append(search_string)
       self.chat_history.append(local_chat_history)
+      with open('chat_session_history.txt', 'w') as f:
+        pp.pp(self.chat_history, stream=f)
 
       return '', self.chat_history, None
-    
-    ''' Handle Chat Mode ====================================================='''
+
+    ''' =============================================================================================
+    Handle Chat Mode  -
+    if user chooses chat mode, send query to LLM and return response
+    ================================================================================================='''
     if mode_flag == 'Chat':
       self.chat_idx  = 0
       local_chat_history = []
@@ -136,10 +159,15 @@ manual mode."
       self.latest_response = response
       local_chat_history.append(response)
       self.chat_history.append(local_chat_history)
+      with open('chat_session_history.txt', 'w') as f:
+        pp.pp(self.chat_history, stream=f)
       
       return '', self.chat_history, None
 
-    ''' Normal Mode: not chat or web search - First interaction: get best tools and parsed entities '''
+    '''=============================================================================================
+    AI Mode: not chat or web search - 
+    First interaction: get best tools and parse entities
+    ============================================================================================='''
     if self.chat_idx == 0:
       #self.chat_history = []
       local_chat_history = []
@@ -150,30 +178,44 @@ manual mode."
       self.best_tools, self.present, self.proteins_list, self.names_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list = \
       intake(self.query, self.parse_model, self.embed_model, self.document_embeddings)
 
-      response = 'The tools chosen based on your query are:'
+      response = '## The tools chosen based on your query are:'
       for i,tool in enumerate(self.best_tools):
         response += '\n' + f'{i+1}. {tool} : {full_tool_descriptions[tool]}'
 
-      response += ' \n\n And the following information was found in your query:\n'
+      response += ' \n\n ## And the following information was found in your query:\n'
       for (entity_type, entity_list) in zip(self.present, [self.proteins_list, self.names_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list]):
         if self.present[entity_type] > 0:
-          response += f'{entity_type}: {self.present[entity_type]}\n'
+          response += f'**{entity_type}**: {self.present[entity_type]}\n'
           for entity in entity_list:
-            response += f'{entity_type}: {entity}\n'
+            response += f'- **{entity_type}**: {entity}\n'
       response += '\n To accept the #1 tool choice, hit enter; to choose 2 or 3, enter that number.'
       response += '\n To start over, click the clear button and enter a new query.' 
       self.chat_idx += 1
 
+      matches = smiles_regex(response)
+      for m in matches:
+        if m in response:
+          response = response.replace(m, f'```{m}```')
+
       local_chat_history.append(response)
       self.chat_history.append(local_chat_history)
+      with open('chat_session_history.txt', 'w') as f:
+        pp.pp(self.chat_history, stream=f)
 
       return '', self.chat_history, None
 
-    #''' Second interaction: get tool choice and call tool function, return results ============='''
     elif self.chat_idx == 1:
+      '''=============================================================================================
+      AI Mode: not chat or web search - 
+       Second interaction: get tool choice and call tool function, return results
+       either directly (manual mode) or via LLM (AI mode)
+      ============================================================================================='''
       local_chat_history = []
       local_chat_history.append(query)
 
+      ''' ===============================================================================================
+      In the case that the user enters an invalid tool choice, return to tool choice step
+      ==================================================================================================='''
       if query == '':
         self.tool_choice = 0
       elif query in ['1','2','3']:
@@ -182,10 +224,16 @@ manual mode."
         response = 'Invalid input. Please enter 1, 2, or 3 to choose one of the tools above, or hit enter to accept the #1 tool choice.'
         local_chat_history.append(response)
         self.chat_history.append(local_chat_history)
+        with open('chat_session_history.txt', 'w') as f:
+          pp.pp(self.chat_history, stream=f)
+
         self.chat_idx = 1
         return '', self.chat_history, None
       
-      ''' Check that the necessary data is present for the chosen tool'''
+      ''' ==============================================================================================
+      Check that the necessary data is present for the chosen tool
+      ask user for missing data if not
+      ================================================================================================='''
       tool_function_reqs = define_tool_reqs(self.best_tools[self.tool_choice], self.proteins_list,
                                             self.names_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list)
       data_request = f'The necessary data was not found for tool {self.best_tools[self.tool_choice]}.\n'
@@ -195,15 +243,19 @@ manual mode."
 
       for sub_list, list_name in zip(reqs_list, list_names):
         if len(sub_list) == 0:
-          data_request += f'Missing information for: {list_name}.\n'
+          data_request += f'Missing information for: *{list_name}*.\n'
           missing_data = True
       data_request += 'Please provide the necessary information to proceed.'
       if missing_data:
         local_chat_history.append(data_request)
         self.chat_history.append(local_chat_history)
+        with open('chat_session_history.txt', 'w') as f:
+          pp.pp(self.chat_history, stream=f)
         self.chat_idx = 999
         return '', self.chat_history, None
-      ''' End data check: if not missing data, call tool function '''
+      ''' ====================================================================================================
+      End data check: if not missing data, call tool function 
+      ====================================================================================================='''
 
       ''' Get the chosen tool function and args, call it, and get results'''
       tool_function_hash = define_tool_hash(self.best_tools[self.tool_choice], self.proteins_list,
@@ -215,10 +267,21 @@ manual mode."
       results_list, self.results_string, self.results_images = results_tuple
       print(self.results_string)
 
-      '''If manual mode, return results directly; if AI mode, send results to LLM for response generation'''
+      '''=============================================================================================
+      If manual mode, return results directly; if AI mode, send results to LLM for response generation
+      ============================================================================================='''
       if mode_flag == 'Manual':
+        
+        matches = smiles_regex(self.results_string)
+
+        for m in matches:
+          if m in self.results_string:
+            self.results_string = self.results_string.replace(m, f'```{m}```')
+
         local_chat_history.append(self.results_string)
         self.chat_history.append(local_chat_history)
+        with open('chat_session_history.txt', 'w') as f:
+          pp.pp(self.chat_history, stream=f)
         try:
           img = Image.open(io.BytesIO(self.results_images[0].data))
         except:
@@ -228,7 +291,9 @@ manual mode."
 
         return '', self.chat_history, img
 
-      ''' AI mode: send results to LLM for response generation'''
+      ''' ============================================================================================= 
+      AI mode: send results to LLM for response generation
+      ============================================================================================='''
       role_text = "Answer the query using the information in the context. Add explanations \
 or enriching information where appropriate."
 
@@ -258,8 +323,16 @@ or enriching information where appropriate."
       parts = outputs[0].split('<start_of_turn>model')
       response = parts[1].strip('\n').strip('<end_of_turn>')
       self.latest_response = response
+
+      matches = smiles_regex(response)
+      for m in matches:
+          if m in response:
+              response = response.replace(m, f'```{m}```')
+
       local_chat_history.append(response)
       self.chat_history.append(local_chat_history)
+      with open('chat_session_history.txt', 'w') as f:
+        pp.pp(self.chat_history, stream=f)
       self.chat_idx += 1
 
       # self.reset_chat()
@@ -275,38 +348,64 @@ or enriching information where appropriate."
       else:
         return '', self.chat_history, None
     
-    #'''if chat_idx > 1, call second intake to get new tools based on latest response and last results'''
     elif self.chat_idx == 2:
+      '''=============================================================================================
+      for every turn after the first tool call:
+      if chat_idx  = 2, call second intake to get new tools based on latest response, last results,
+      and the new query
+      calls chat_idx = 1 again to get tool choice from user
+      ============================================================================================='''
       local_chat_history = []
       local_chat_history.append(query)
       self.query = query
 
-      context = self.latest_response + '\n' + self.results_string
+      ''' =============================================================================================
+      if user wants to review history, set context to full chat history, else set context to latest response,
+      last results, and the new query
+      ============================================================================================'''
+      if mode_flag == 'Review History':
+        context = self.query
+        for chat in self.chat_history:
+          for turn in chat:
+            context += '\n' + turn
+      else:
+        context = self.latest_response + '\n' + self.results_string + '\n' + self.query
+
       self.best_tools, self.present, self.proteins_list, self.names_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list = \
       second_intake(self.query, context, self.parse_model, self.embed_model, self.document_embeddings)
 
-      response = f'Your new query is: {self.query}\n'
-      response += 'The tools chosen based on your query are:'
+      response = f'## Your new query is: {self.query}\n'
+      response += '## The tools chosen based on your query are:'
       for i,tool in enumerate(self.best_tools):
         response += '\n' + f'{i+1}. {tool} : {full_tool_descriptions[tool]}'
 
-      response += ' \n\n And the following information was found in your query:\n'
+      response += ' \n\n ## And the following information was found in your query:\n'
       for (entity_type, entity_list) in zip(self.present, [self.proteins_list, self.names_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list]):
         if self.present[entity_type] > 0:
-          response += f'{entity_type}: {self.present[entity_type]}\n'
+          response += f'**{entity_type}**: {self.present[entity_type]}\n'
           for entity in entity_list:
-            response += f'{entity_type}: {entity}\n'
+            response += f'- **{entity_type}**: {entity}\n'
       response += '\n To accept the #1 tool choice, hit enter; to choose 2 or 3, enter that number.'
       response += '\n To start over, click the clear button and enter a new query.' 
       self.chat_idx = 1
 
+      matches = smiles_regex(response)
+      for m in matches:
+          if m in response:
+              response = response.replace(m, f'```{m}```')
+
       local_chat_history.append(response)
       self.chat_history.append(local_chat_history)
+      with open('chat_session_history.txt', 'w') as f:
+        pp.pp(self.chat_history, stream=f)
 
       return '', self.chat_history, None
     
     elif self.chat_idx == 999:
-      ''' condition for missing data after tool choice '''
+      ''' ============================================================================================== 
+      condition for missing data after tool choice; if user was prompted for missing data, parse new input,
+      then return to tool choice step (chat_idx = 1)
+      ============================================================================================='''
       local_chat_history = []
       local_chat_history.append(query)
 
@@ -330,23 +429,30 @@ or enriching information where appropriate."
       for item in present:
         self.present[item] += present[item]
       
-      response = f'Your new query is: {self.query}\n'
-      response += 'The tools chosen based on your query are:'
+      response = f'## Your new query is: {self.query}\n'
+      response += '## The tools chosen based on your query are:'
       for i,tool in enumerate(self.best_tools):
         response += '\n' + f'{i+1}. {tool} : {full_tool_descriptions[tool]}'
 
-      response += ' \n\n And the following information was found in your query:\n'
+      response += ' \n\n ## And the following information was found in your query:\n'
       for (entity_type, entity_list) in zip(self.present, [self.proteins_list, self.names_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list]):
         if self.present[entity_type] > 0:
-          response += f'{entity_type}: {self.present[entity_type]}\n'
+          response += f'**{entity_type}**: {self.present[entity_type]}\n'
           for entity in entity_list:
-            response += f'{entity_type}: {entity}\n'
+            response += f'- **{entity_type}**: {entity}\n'
       response += '\n To accept the #1 tool choice, hit enter; to choose 2 or 3, enter that number.'
       response += '\n To start over, click the clear button and enter a new query.' 
       self.chat_idx = 1
 
+      matches = smiles_regex(response)
+      for m in matches:
+          if m in response:
+              response = response.replace(m, f'```{m}```')
+
       local_chat_history.append(response)
       self.chat_history.append(local_chat_history)
+      with open('chat_session_history.txt', 'w') as f:
+        pp.pp(self.chat_history, stream=f)
 
       return '', self.chat_history, None
 
@@ -454,7 +560,14 @@ def websearch_node(query: str, embed_model, proxy_flag: bool = True) -> (list[st
 
   return top_hits, search_string, None
 
-## older functions retained for compatibility
+'''================================================================================================
+Functions for use on Hugging Face Spaces
+===================================================================================================='''
+
+
+''' ======================================================================================================
+older functions retained for compatibility
+======================================================================================================'''
 
 
 def query_to_context(query: str, parse_model, embed_model, document_embeddings):

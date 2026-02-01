@@ -288,6 +288,7 @@ def predict_node(smiles_list_in: list[str], chembl_id: str) -> (list[float],str)
     _, _, _ = getbioactives_node([chembl_id])
   
   try:
+    chembl_id = chembl_id.upper()
     df = pd.read_csv(f'{chembl_id}_bioactives.csv')
     #if length of the dataframe is over 2000, take a random sample of 2000 points
     if len(df) > 2000:
@@ -349,7 +350,7 @@ def predict_node(smiles_list_in: list[str], chembl_id: str) -> (list[float],str)
     valid_score = model.score(X_test, y_test)
     print(f"score for validation set: {valid_score:.3f}")
   except:
-    return [], 'Model training failed, unable to predict.'
+    return [], 'Model training failed, unable to predict.', None
 
   preds = []
   preds_string = ''
@@ -393,6 +394,7 @@ def gpt_node(chembl_id: str) -> (list[str], str, Image.Image):
   print('===================================================')
   
   # if f'{chembl_id}_bioactives.csv' does not exist, call the bioactives node
+  chembl_id = chembl_id.upper()
   if not os.path.exists(f'{chembl_id}_bioactives.csv'):
     _, _, _ = getbioactives_node([chembl_id])
 
