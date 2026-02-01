@@ -457,7 +457,13 @@ or enriching information where appropriate."
       return '', self.chat_history, None
 
     elif self.chat_idx == 500:
-      local
+      local_chat_history = []
+      local_chat_history.append(query)
+      self.chat_idx = 501
+    
+      list_list = ['smiles list', 'names list']
+      response = 'Enter the list to edit:\n'
+    
 
 full_tool_descriptions = {
   'smiles_node' : 'Queries Pubchem for the smiles string of the molecule based on the name.',
