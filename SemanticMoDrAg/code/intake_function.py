@@ -456,6 +456,8 @@ or enriching information where appropriate."
 
       return '', self.chat_history, None
 
+    elif self.chat_idx == 500:
+      local
 
 full_tool_descriptions = {
   'smiles_node' : 'Queries Pubchem for the smiles string of the molecule based on the name.',
