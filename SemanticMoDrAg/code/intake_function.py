@@ -87,6 +87,22 @@ class chat_manager():
     self.chembl_list = []
     self.query = ''
     self.present = []
+  
+  def hard_reset_chat(self):
+    '''
+    Resets the chat state.
+    '''
+    self.chat_idx = 0
+    self.best_tools = []
+    self.proteins_list = []
+    self.names_list = []
+    self.smiles_list = []
+    self.uniprot_list = []
+    self.pdb_list = []
+    self.chembl_list = []
+    self.query = ''
+    self.present = []
+    self.chat_history = []
 
   def chat(self, query: str, mode_flag: str = 'AI'):
     '''
@@ -125,13 +141,19 @@ class chat_manager():
       local_chat_history.append(query)
       self.query = query
 
-      role_text = "You are part of a drug design agent. Answer user questions to the best of your ability. \
+      context = 'Previous chat history: '
+      for chat in self.chat_history:
+          for turn in chat:
+            context += '\n' + turn
+
+
+      role_text = f"You are part of a drug design agent. Answer user questions to the best of your ability. \
 If the user asks any innapropriate questions, respond with 'I'm sorry, I can't assist with that request.' \
 If the user asks for general information, provide a concise and accurate answer. If the user asks about drug design, \
 provide detailed and informative answers or refer them to the tools. They can access the tools by switching to AI or \
-manual mode."
+manual mode. Reference the previous conversation in the context if needed."
 
-      prompt = f'Query: {self.query}.'
+      prompt = f'Query: {self.query}; CONTEXT: {context}.'
 
       messages = [[{
                   "role": "system",
@@ -186,9 +208,10 @@ manual mode."
       for (entity_type, entity_list) in zip(self.present, [self.proteins_list, self.names_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list]):
         if self.present[entity_type] > 0:
           response += f'**{entity_type}**: {self.present[entity_type]}\n'
-          for entity in entity_list:
-            response += f'- **{entity_type}**: {entity}\n'
+          for ent_idx, entity in enumerate(entity_list):
+            response += f'- **{ent_idx+1}. {entity_type}**: {entity}\n'
       response += '\n To accept the #1 tool choice, hit enter; to choose 2 or 3, enter that number.'
+      response += '\n To edit the items in a list, enter "edit".'
       response += '\n To start over, click the clear button and enter a new query.' 
       self.chat_idx += 1
 
@@ -214,14 +237,32 @@ manual mode."
       local_chat_history.append(query)
 
       ''' ===============================================================================================
-      In the case that the user enters an invalid tool choice, return to tool choice step
-      ==================================================================================================='''
-      if query == '':
+      if the user has chosen to edit a list, go to edit list step 501
+      =============================================================================================='''
+      if 'edit' in query.lower():
+        self.chat_idx = 501
+      
+        list_list = ['smiles list', 'names list', 'proteins list', 'uniprot list', 'pdb list', 'chembl list']
+        response = '## Enter the list to edit:\n'
+        for i, list_name in enumerate(list_list):
+          response += f'**{i+1}**. {list_name}\n'
+        
+        local_chat_history.append(response)
+        self.chat_history.append(local_chat_history)
+        with open('chat_session_history.txt', 'w') as f:
+          pp.pp(self.chat_history, stream=f)
+        return '', self.chat_history, None
+      
+      elif query == '':
         self.tool_choice = 0
       elif query in ['1','2','3']:
         self.tool_choice = int(query) - 1
       else:
-        response = 'Invalid input. Please enter 1, 2, or 3 to choose one of the tools above, or hit enter to accept the #1 tool choice.'
+        ''' ===============================================================================================
+        In the case that the user enters an invalid tool choice, return to tool choice step
+        ==================================================================================================='''
+        response = 'Invalid input. Please enter 1, 2, or 3 to choose one of the tools above, or hit enter to accept the #1 tool choice. \
+or enter "edit" to edit a list.'
         local_chat_history.append(response)
         self.chat_history.append(local_chat_history)
         with open('chat_session_history.txt', 'w') as f:
@@ -383,9 +424,10 @@ or enriching information where appropriate."
       for (entity_type, entity_list) in zip(self.present, [self.proteins_list, self.names_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list]):
         if self.present[entity_type] > 0:
           response += f'**{entity_type}**: {self.present[entity_type]}\n'
-          for entity in entity_list:
-            response += f'- **{entity_type}**: {entity}\n'
+          for ent_idx, entity in enumerate(entity_list):
+            response += f'- **{ent_idx+1}. {entity_type}**: {entity}\n'
       response += '\n To accept the #1 tool choice, hit enter; to choose 2 or 3, enter that number.'
+      response += '\n To edit the items in a list, enter "edit".'
       response += '\n To start over, click the clear button and enter a new query.' 
       self.chat_idx = 1
 
@@ -438,9 +480,10 @@ or enriching information where appropriate."
       for (entity_type, entity_list) in zip(self.present, [self.proteins_list, self.names_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list]):
         if self.present[entity_type] > 0:
           response += f'**{entity_type}**: {self.present[entity_type]}\n'
-          for entity in entity_list:
-            response += f'- **{entity_type}**: {entity}\n'
+          for ent_idx, entity in enumerate(entity_list):
+            response += f'- **{ent_idx+1}. {entity_type}**: {entity}\n'
       response += '\n To accept the #1 tool choice, hit enter; to choose 2 or 3, enter that number.'
+      response += '\n To edit the items in a list, enter "edit".'
       response += '\n To start over, click the clear button and enter a new query.' 
       self.chat_idx = 1
 
@@ -455,15 +498,131 @@ or enriching information where appropriate."
         pp.pp(self.chat_history, stream=f)
 
       return '', self.chat_history, None
-
-    elif self.chat_idx == 500:
+    
+    elif self.chat_idx == 501:
+      ''' ==============================================================================================
+      condition for editing a list; get which list to edit from user
+      ============================================================================================='''
       local_chat_history = []
       local_chat_history.append(query)
-      self.chat_idx = 501
-    
-      list_list = ['smiles list', 'names list']
-      response = 'Enter the list to edit:\n'
-    
+      self.chat_idx = 502
+
+      list_list = ['smiles list', 'names list', 'proteins list', 'uniprot list', 'pdb list', 'chembl list']
+      try:
+        choice_idx = int(query) - 1
+        self.list_to_edit = list_list[choice_idx]
+
+        response = f'## You have chosen to edit the {self.list_to_edit}.\n'
+        response += 'Enter the numbers for the *items to keep* in the list.'
+
+      except:
+        response = 'Invalid input. Please enter the number corresponding to the list you wish to edit.'
+        self.chat_idx = 501
+
+      local_chat_history.append(response)
+      self.chat_history.append(local_chat_history)
+      with open('chat_session_history.txt', 'w') as f:
+        pp.pp(self.chat_history, stream=f)
+      return '', self.chat_history, None  
+
+    if self.chat_idx == 502:
+      ''' ==============================================================================================
+      condition for editing a list; get which items to keep from user
+      ============================================================================================='''
+      local_chat_history = []
+      local_chat_history.append(query)
+      self.chat_idx = 503
+
+      if ',' in query:
+        items_to_keep = query.split(',')
+      elif ';' in query:
+        items_to_keep = query.split(';')
+      else: 
+        items_to_keep = query.split()
+      
+      for item in items_to_keep:
+        if not item.isdigit():
+          response = 'Invalid input. Please enter the numbers corresponding to the items you wish to keep.'
+          self.chat_idx = 502
+          local_chat_history.append(response)
+          self.chat_history.append(local_chat_history)
+          with open('chat_session_history.txt', 'w') as f:
+            pp.pp(self.chat_history, stream=f)
+          return '', self.chat_history, None
+      
+      try:
+        if self.list_to_edit == 'smiles list':
+          current_list = self.smiles_list
+        elif self.list_to_edit == 'names list':
+          current_list = self.names_list
+        elif self.list_to_edit == 'proteins list':
+          current_list = self.proteins_list
+        elif self.list_to_edit == 'uniprot list':
+          current_list = self.uniprot_list
+        elif self.list_to_edit == 'pdb list':
+          current_list = self.pdb_list
+        elif self.list_to_edit == 'chembl list':
+          current_list = self.chembl_list
+        
+        new_list = []
+        for item in items_to_keep:
+          idx = int(item) - 1
+          new_list.append(current_list[idx])
+        
+        if self.list_to_edit == 'smiles list':
+          self.smiles_list = new_list
+        elif self.list_to_edit == 'names list': 
+          self.names_list = new_list
+        elif self.list_to_edit == 'proteins list':
+          self.proteins_list = new_list
+        elif self.list_to_edit == 'uniprot list':
+          self.uniprot_list = new_list
+        elif self.list_to_edit == 'pdb list':
+          self.pdb_list = new_list
+        elif self.list_to_edit == 'chembl list':
+          self.chembl_list = new_list
+        
+        self.present = {
+          'proteins': len(self.proteins_list),
+          'molecules': len(self.names_list),
+          'smiles': len(self.smiles_list),
+          'uniprot': len(self.uniprot_list),
+          'pdb': len(self.pdb_list),
+          'chembl': len(self.chembl_list)
+        }
+
+        response = '## The tools chosen based on your query are:'
+        for i,tool in enumerate(self.best_tools):
+          response += '\n' + f'{i+1}. {tool} : {full_tool_descriptions[tool]}'
+
+        response += ' \n\n ## And the following information was found in your query:\n'
+        for (entity_type, entity_list) in zip(self.present, [self.proteins_list, self.names_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list]):
+          if self.present[entity_type] > 0:
+            response += f'**{entity_type}**: {self.present[entity_type]}\n'
+            for ent_idx, entity in enumerate(entity_list):
+              response += f'- **{ent_idx+1}. {entity_type}**: {entity}\n'
+        response += '\n To accept the #1 tool choice, hit enter; to choose 2 or 3, enter that number.'
+        response += '\n To edit the items in a list, enter "edit".'
+        response += '\n To start over, click the clear button and enter a new query.' 
+        self.chat_idx = 1
+
+        matches = smiles_regex(response)
+        for m in matches:
+          if m in response:
+            response = response.replace(m, f'```{m}```')
+
+      except:
+        response = 'An error occurred while processing your input. Please try again.'
+        self.chat_idx = 502
+
+      local_chat_history.append(response)
+      self.chat_history.append(local_chat_history)
+      with open('chat_session_history.txt', 'w') as f:
+        pp.pp(self.chat_history, stream=f)
+        
+      return '', self.chat_history, None
+        
+
 
 full_tool_descriptions = {
   'smiles_node' : 'Queries Pubchem for the smiles string of the molecule based on the name.',
