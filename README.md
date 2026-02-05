@@ -1,5 +1,35 @@
 # MoDrAg
-A *Mo*dular *Dr*ug-design AI *Ag*ent. See the descption of the Agent's [abilities](#abilities), the [design philosphy](#philosophy), a [description of all the files](#files) in this repo, or some [sample images](#images) below.
+A *Mo*dular *Dr*ug-design AI *Ag*ent. 
+- This page describes the *semantic* version of the agent. For the
+
+## How to add a function to the Agent
+- A function can be easily added if it only requires input in the form of: SMILES, molecule names, protein names, Chembl IDs, Uniprot accession codes, or PBD IDs.
+- The function should be of the form (substitute the function task for the word function):
+```
+def function_node(agr: type, arg2: type):
+  '''
+  Doc string with args and returns
+  '''
+  [function body]
+
+  returns a_list, a_string, an_image_list
+```
+The function can take any number of arguements but must return exactly 3: a list (can be nested), a string containing the function results in text form (to be given to the LLM as context), and an optional image or list of images. If it is a single image it should still be given as a list.
+- The function can be aded to either *modrag_protein_functions, modrag_property_functions,* or *modrag_molecule_functions*. Dependencies should be added to the top of the file.
+- Dependencies should also be added to the *requirements.txt* file for installation in the container.
+- A desccription should be aded to the ```full_tool_descriptions``` dictionary in app.py (intake_function.py for Colab). This is the description that will be shown to the user when the AI has selected a tool (for human-in-the-loop approval).
+-  
+
+
+
+
+
+
+
+
+
+# LangGraph-based Agent
+See the descption of the Agent's [abilities](#abilities), the [design philosphy](#philosophy), a [description of all the files](#files) in this repo, or some [sample images](#images) below.
 
 ### Find a working demo of MoDrAg [on HuggingFace Spaces!](https://huggingface.co/spaces/cafierom/DDAgent)
 ### Use MoDrAg's tools with OpenAI models with [Modrag Chat](https://github.com/MauricioCafiero/MoDrAg/blob/main/MoDrAg_Chat.md)
