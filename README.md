@@ -11,11 +11,11 @@ A *Mo*dular *Dr*ug-design AI *Ag*ent.
 
 ## Modes
 MoDrAg2 has several modes:
-- AI mode: runs the selected tools and have the AI interpret the data for you.
+- AI mode: runs the selected tools and has the AI interpret the data for you.
 - Manual mode: returns raw tool results, without passing through the AI.
-- Review History mode: This uses tools while reviewing your entire chat history for input data. Only needs to be used if you need to grab a molecules, protein, etc from 2 or more turns ago.
+- Review History mode: This uses tools while reviewing your entire chat history for input data. Only needs to be used if you need to grab molecules, proteins, etc from 2 or more turns ago.
 - Chat mode: this allows you to chat freely with the AI, with the AI being able to access any information from the chat history. Useful to revisit a result previously given by the AI.
-- Web search mode: This is a literature search. It results a list of relevant papers, articles, books, etc ranked according to how relevant they are to your query.
+- Web search mode: This is a literature search. It returns a list of relevant papers, articles, books, etc ranked according to how relevant they are to your query.
   
 ## Abilities:
 A nicely featured drug-design helper pipeline, including: 
