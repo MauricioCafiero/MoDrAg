@@ -12,9 +12,8 @@ import numpy as np
 import pandas as pd
 from chembl_webresource_client.new_client import new_client
 from tqdm.auto import tqdm
-import requests 
+import requests, json
 from rcsbapi.search import TextQuery
-import requests
 import itertools
 
 import lightgbm as lgb
@@ -630,7 +629,7 @@ def docking_node(smiles_list: list[str], query_protein: str) -> (list[float], st
   print(f'query_protein: {query_protein}')
 
   scores_list = []
-  scores_string = ''
+  scores_string = 'Docking below performed with AutoDock Vina on protein structures from the DUDE database.\n'
 
   for query_smiles in smiles_list:
     try:
@@ -653,12 +652,99 @@ def docking_node(smiles_list: list[str], query_protein: str) -> (list[float], st
         pos = molH.GetConformer().GetAtomPosition(atom.GetIdx())
         xyz_string += f"{atom.GetSymbol()} {pos[0]} {pos[1]} {pos[2]}\n"
       scores_string += f"Docking score for molecule with SMILES: {query_smiles} is: {score} kcal/mol \n\n"
-      scores_string += f"pose structure: {xyz_string}\n"
+      scores_string += f"pose XYZ structure for molecule with SMILES: {query_smiles} is: \n"
+      lines = xyz_string.split('\n')
+      for line in lines[2:]:
+        scores_string += f'{line}\n'
       scores_string += f"=========================================================\n"
 
     except:
       print(f"Molecule {query_smiles} could not be docked!")
-      scores_string = ''
+      scores_string = 'Could not dock!'
       scores_list.append(None)
 
   return scores_list, scores_string, None
+
+def target_node(search_descriptors: list[str]):
+  '''
+  Accepts a disease name and searches Open Targets for associated targets
+
+  Args:
+    search_descriptor (str): Disease name
+
+  Returns:
+    targets_list (list): List of targets
+    targets_string (str): String of targets
+    None
+  '''
+  base_url = "https://api.platform.opentargets.org/api/v4/graphql"
+
+  disease_query_string = """
+    query searchEntity($queryString: String!) {
+      search(queryString: $queryString){
+        total
+        hits  {
+          id
+          entity
+          description
+        }
+      }
+    }
+  """
+
+  target_query_string = """
+    query associatedTargets($efo_id: String!) {
+      disease(efoId: $efo_id) {
+        id
+        name
+        associatedTargets {
+          count
+          rows {
+            target {
+              id
+              approvedSymbol
+            }
+            score
+          }
+        }
+      }
+    }
+  """
+  total_targets_list = []
+  total_targets_string = ''
+
+  for search_descriptor in search_descriptors:
+
+    variables = {"queryString": search_descriptor}
+    r = requests.post(base_url, json={"query": disease_query_string, "variables": variables})
+
+    disease_list = []
+    targets_list = []
+
+    if r.status_code == 200:
+      api_response = json.loads(r.text)
+      if len(api_response['data']['search']['hits']) > 0:
+        for hit in api_response['data']['search']['hits']:
+          if hit['entity'] == 'disease':
+            disease_list.append(hit['id'])
+    else:
+      print('Could not find results.')
+
+    if len(disease_list) > 0:
+      q = requests.post(base_url, json={"query": target_query_string, "variables": {"efo_id": disease_list[0]}})
+      if q.status_code == 200:
+        api_response = json.loads(q.text)
+        for target in api_response['data']['disease']['associatedTargets']['rows']:
+          targets_list.append(target['target']['approvedSymbol'])
+
+    targets_string = f'Possible targets for {search_descriptor} include: \n'
+    if len(targets_list) > 0:
+      for i, target in enumerate(targets_list):
+        targets_string += f'{i+1}. {target}\n'
+    else:
+      targets_string = f'No targets found for {search_descriptor}'
+    
+    total_targets_list.append(targets_list)
+    total_targets_string += targets_string
+
+  return total_targets_list, total_targets_string, None

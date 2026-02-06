@@ -81,6 +81,7 @@ class chat_manager():
     self.best_tools = []
     self.proteins_list = []
     self.names_list = []
+    self.diseases_list = []
     self.smiles_list = []
     self.uniprot_list = []
     self.pdb_list = []
@@ -96,6 +97,7 @@ class chat_manager():
     self.best_tools = []
     self.proteins_list = []
     self.names_list = []
+    self.diseases_list = []
     self.smiles_list = []
     self.uniprot_list = []
     self.pdb_list = []
@@ -148,7 +150,7 @@ class chat_manager():
 
 
       role_text = f"You are part of a drug design agent. Answer user questions to the best of your ability. \
-If the user asks any innapropriate questions, respond with 'I'm sorry, I can't assist with that request.' \
+If the user asks any non-scientific questions, respond with 'I'm sorry, I can't assist with that request.' \
 If the user asks for general information, provide a concise and accurate answer. If the user asks about drug design, \
 provide detailed and informative answers or refer them to the tools. They can access the tools by switching to AI or \
 manual mode. Reference the previous conversation in the context if needed."
@@ -197,7 +199,7 @@ manual mode. Reference the previous conversation in the context if needed."
 
       '''sends the query to the intake function to get best tools and parsed entities'''
       self.query = query
-      self.best_tools, self.present, self.proteins_list, self.names_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list = \
+      self.best_tools, self.present, self.proteins_list, self.names_list, self.diseases_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list = \
       intake(self.query, self.parse_model, self.embed_model, self.document_embeddings)
 
       response = '## The tools chosen based on your query are:'
@@ -205,7 +207,7 @@ manual mode. Reference the previous conversation in the context if needed."
         response += '\n' + f'{i+1}. {tool} : {full_tool_descriptions[tool]}'
 
       response += ' \n\n ## And the following information was found in your query:\n'
-      for (entity_type, entity_list) in zip(self.present, [self.proteins_list, self.names_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list]):
+      for (entity_type, entity_list) in zip(self.present, [self.proteins_list, self.names_list, self.diseases_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list]):
         if self.present[entity_type] > 0:
           response += f'**{entity_type}**: {self.present[entity_type]}\n'
           for ent_idx, entity in enumerate(entity_list):
@@ -241,8 +243,8 @@ manual mode. Reference the previous conversation in the context if needed."
       =============================================================================================='''
       if 'edit' in query.lower():
         self.chat_idx = 501
-      
-        list_list = ['smiles list', 'names list', 'proteins list', 'uniprot list', 'pdb list', 'chembl list']
+
+        list_list = ['smiles list', 'names list', 'proteins list', 'diseases list', 'uniprot list', 'pdb list', 'chembl list']
         response = '## Enter the list to edit:\n'
         for i, list_name in enumerate(list_list):
           response += f'**{i+1}**. {list_name}\n'
@@ -276,7 +278,7 @@ or enter "edit" to edit a list.'
       ask user for missing data if not
       ================================================================================================='''
       tool_function_reqs = define_tool_reqs(self.best_tools[self.tool_choice], self.proteins_list,
-                                            self.names_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list)
+                                            self.names_list, self.diseases_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list)
       data_request = f'The necessary data was not found for tool {self.best_tools[self.tool_choice]}.\n'
       missing_data = False
       reqs_list = tool_function_reqs[self.best_tools[self.tool_choice]][0]
@@ -300,7 +302,7 @@ or enter "edit" to edit a list.'
 
       ''' Get the chosen tool function and args, call it, and get results'''
       tool_function_hash = define_tool_hash(self.best_tools[self.tool_choice], self.proteins_list,
-                                            self.names_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list)
+                                            self.names_list, self.diseases_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list)
 
       args_list = tool_function_hash[self.best_tools[self.tool_choice]][1]
       results_tuple  = tool_function_hash[self.best_tools[self.tool_choice]][0](*args_list)
@@ -412,7 +414,7 @@ or enriching information where appropriate."
       else:
         context = self.latest_response + '\n' + self.results_string + '\n' + self.query
 
-      self.best_tools, self.present, self.proteins_list, self.names_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list = \
+      self.best_tools, self.present, self.proteins_list, self.names_list, self.diseases_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list = \
       second_intake(self.query, context, self.parse_model, self.embed_model, self.document_embeddings)
 
       response = f'## Your new query is: {self.query}\n'
@@ -421,7 +423,7 @@ or enriching information where appropriate."
         response += '\n' + f'{i+1}. {tool} : {full_tool_descriptions[tool]}'
 
       response += ' \n\n ## And the following information was found in your query:\n'
-      for (entity_type, entity_list) in zip(self.present, [self.proteins_list, self.names_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list]):
+      for (entity_type, entity_list) in zip(self.present, [self.proteins_list, self.names_list, self.diseases_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list]):
         if self.present[entity_type] > 0:
           response += f'**{entity_type}**: {self.present[entity_type]}\n'
           for ent_idx, entity in enumerate(entity_list):
@@ -452,13 +454,15 @@ or enriching information where appropriate."
       local_chat_history.append(query)
 
       ''' Parse the new input to get missing data '''
-      present, proteins_list, names_list, smiles_list, uniprot_list, pdb_list, chembl_list = parse_input(query, self.parse_model)
+      present, proteins_list, names_list, diseases_list, smiles_list, uniprot_list, pdb_list, chembl_list = parse_input(query, self.parse_model)
 
       ''' Update the existing lists with any new data only if the existing lists are empty'''
       if len(self.proteins_list) == 0 and len(proteins_list) > 0:
         self.proteins_list = proteins_list
       if len(self.names_list) == 0 and len(names_list) > 0:
         self.names_list = names_list
+      if len(self.diseases_list) == 0 and len(diseases_list) > 0:
+        self.diseases_list = diseases_list
       if len(self.smiles_list) == 0 and len(smiles_list) > 0:
         self.smiles_list = smiles_list
       if len(self.uniprot_list) == 0 and len(uniprot_list) > 0:
@@ -477,7 +481,7 @@ or enriching information where appropriate."
         response += '\n' + f'{i+1}. {tool} : {full_tool_descriptions[tool]}'
 
       response += ' \n\n ## And the following information was found in your query:\n'
-      for (entity_type, entity_list) in zip(self.present, [self.proteins_list, self.names_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list]):
+      for (entity_type, entity_list) in zip(self.present, [self.proteins_list, self.names_list, self.diseases_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list]):
         if self.present[entity_type] > 0:
           response += f'**{entity_type}**: {self.present[entity_type]}\n'
           for ent_idx, entity in enumerate(entity_list):
@@ -507,7 +511,7 @@ or enriching information where appropriate."
       local_chat_history.append(query)
       self.chat_idx = 502
 
-      list_list = ['smiles list', 'names list', 'proteins list', 'uniprot list', 'pdb list', 'chembl list']
+      list_list = ['smiles list', 'names list', 'proteins list', 'diseases list', 'uniprot list', 'pdb list', 'chembl list']
       try:
         choice_idx = int(query) - 1
         self.list_to_edit = list_list[choice_idx]
@@ -557,6 +561,8 @@ or enriching information where appropriate."
           current_list = self.names_list
         elif self.list_to_edit == 'proteins list':
           current_list = self.proteins_list
+        elif self.list_to_edit == 'diseases list':
+          current_list = self.diseases_list
         elif self.list_to_edit == 'uniprot list':
           current_list = self.uniprot_list
         elif self.list_to_edit == 'pdb list':
@@ -575,6 +581,8 @@ or enriching information where appropriate."
           self.names_list = new_list
         elif self.list_to_edit == 'proteins list':
           self.proteins_list = new_list
+        elif self.list_to_edit == 'diseases list':
+          self.diseases_list = new_list
         elif self.list_to_edit == 'uniprot list':
           self.uniprot_list = new_list
         elif self.list_to_edit == 'pdb list':
@@ -585,6 +593,7 @@ or enriching information where appropriate."
         self.present = {
           'proteins': len(self.proteins_list),
           'molecules': len(self.names_list),
+          'diseases': len(self.diseases_list),
           'smiles': len(self.smiles_list),
           'uniprot': len(self.uniprot_list),
           'pdb': len(self.pdb_list),
@@ -596,7 +605,7 @@ or enriching information where appropriate."
           response += '\n' + f'{i+1}. {tool} : {full_tool_descriptions[tool]}'
 
         response += ' \n\n ## And the following information was found in your query:\n'
-        for (entity_type, entity_list) in zip(self.present, [self.proteins_list, self.names_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list]):
+        for (entity_type, entity_list) in zip(self.present, [self.proteins_list, self.names_list, self.diseases_list, self.smiles_list, self.uniprot_list, self.pdb_list, self.chembl_list]):
           if self.present[entity_type] > 0:
             response += f'**{entity_type}**: {self.present[entity_type]}\n'
             for ent_idx, entity in enumerate(entity_list):
@@ -650,7 +659,8 @@ as well as other information such as ligands.',
 with the entry titles.',
   'docking_node' : 'Docking tool: uses dockstring to dock the molecule into the protein binding site and returns \
 the docking score and the binding pose.',
-  'get_actives_for_protein' : 'Finds Bioactive molecules for a give protein. Uses Uniprot to find chembl IDs \
+  'target_node' : 'Accepts a disease name and queries Open Targets for target matches.',
+  'get_actives_for_protein' : 'Finds Bioactive molecules for a given protein. Uses Uniprot to find chembl IDs \
 for the protein, and then queries chembl for bioactive molecules.',
   'get_predictions_for_protein' : 'Uses Uniprot to find chembl IDs for the protein, and then queries chembl \
 for bioactive molecules to train a model and predict the activity of the given smiles.',
@@ -751,15 +761,15 @@ def query_to_context(query: str, parse_model, embed_model, document_embeddings):
         results_images: Any associated images with the results.
     '''
 
-    best_tools, present, proteins_list, names_list, smiles_list, uniprot_list, pdb_list, chembl_list = intake(query, parse_model, embed_model, document_embeddings)
-    tool_function_hash = define_tool_hash(best_tools[0], proteins_list, names_list, smiles_list, uniprot_list, pdb_list, chembl_list)
+    best_tools, present, proteins_list, names_list, diseases_list, smiles_list, uniprot_list, pdb_list, chembl_list = intake(query, parse_model, embed_model, document_embeddings)
+    tool_function_hash = define_tool_hash(best_tools[0], proteins_list, names_list, diseases_list, smiles_list, uniprot_list, pdb_list, chembl_list)
 
     args_list = tool_function_hash[best_tools[0]][1]
     results_tuple  = tool_function_hash[best_tools[0]][0](*args_list)
 
     i=1
     while results_tuple[0] == [] :
-      tool_function_hash = define_tool_hash(best_tools[i], proteins_list, names_list, smiles_list, uniprot_list, pdb_list, chembl_list)
+      tool_function_hash = define_tool_hash(best_tools[i], proteins_list, names_list, diseases_list, smiles_list, uniprot_list, pdb_list, chembl_list)
       args_list = tool_function_hash[best_tools[i]][1]
       results_tuple  = tool_function_hash[best_tools[i]][0](*args_list)
       i+=1

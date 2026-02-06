@@ -5,7 +5,7 @@ import numpy as np
 from rdkit import Chem
 from modrag_molecule_functions import name_node, smiles_node, related_node
 from modrag_task_graphs import get_actives_for_protein, get_predictions_for_protein, dock_from_names
-from modrag_protein_functions import uniprot_node, listbioactives_node, getbioactives_node, predict_node, gpt_node, pdb_node, find_node, docking_node
+from modrag_protein_functions import uniprot_node, listbioactives_node, getbioactives_node, predict_node, gpt_node, pdb_node, find_node, docking_node, target_node
 from modrag_property_functions import substitution_node, lipinski_node, pharmfeature_node
 
 smiles_pattern = r'[CHONFClBrISPKacnosp0-9@+\-\[\]\(\)\/.=#$%]{5,}'
@@ -26,7 +26,7 @@ report the number of bioactive molecules for each Chembl ID.',
 represented by the PDB ID 6YT5.',
     'find_node': 'Find all the PDB IDs in the protein databank for DNA gyrase.',
     'docking_node': 'Find the docking scores for c1cccc1 and CCCCC=O in DNA gyrase. Dock c1cccc1 and CCCCC=O in the protein DNA gyrase.',
-
+    'target_node': 'Find possible protein targets for the disease phenylketonuria.',
     # modrag_property_functions.py
     'substitution_node': 'Generate analogues of O=C([O-])CCc1ccc(O)cc1 by substitution of different groups. Report the QED values as well.',
     'lipinski_node': 'Find the Lipinski properties for c1cccc1 and CCCCC=O; report the\
@@ -125,13 +125,14 @@ def chembl_regex(query: str):
 
 def name_protein_ner(query: str, model):
   '''
-  Accepts a query string and returns the detected protein and molecule entities.
+  Accepts a query string and returns the detected protein, disease and molecule entities.
     Args:
         query: The input query string.
         model: The NER model to use.
     Returns:
         proteins: A list of detected protein names.
         molecules: A list of detected molecule names.
+        diseases: A list of detected disease names.
   '''
   labels = ['Disease or phenotype', 'Chemical entity', 'Gene or gene product',
   'Sequence variant', 'Organism', 'Cell line']
@@ -139,6 +140,7 @@ def name_protein_ner(query: str, model):
   entities = model.predict_entities(query, labels, threshold=0.90)
   molecules = []
   proteins = []
+  diseases = []
 
   for entity in entities:
     if entity['label'] == 'Gene or gene product':
@@ -153,11 +155,18 @@ def name_protein_ner(query: str, model):
       if ' ' not in query[start_idx:end_idx]:
         molecules.append(query[start_idx:end_idx])
 
+    elif entity['label'] == 'Disease or phenotype':
+      start_idx = entity['start']
+      end_idx = entity['end']
+      print('Found disease label: ', query[start_idx:end_idx])
+      diseases.append(query[start_idx:end_idx].strip())
+
   molecules = [m.lower() for m in molecules]
   molecules = list(set(molecules))
   proteins = list(set(proteins))
+  diseases = list(set(diseases))
 
-  return proteins, molecules
+  return proteins, molecules, diseases
 
 def parse_input(query: str, model):
   '''
@@ -174,7 +183,7 @@ def parse_input(query: str, model):
         pdb_list: A list of detected PDB IDs.
         chembl_list: A list of detected ChEMBL IDs.
   '''
-  proteins_list, molecules_list = name_protein_ner(query, model)
+  proteins_list, molecules_list, diseases_list = name_protein_ner(query, model)
   smiles_list = smiles_regex(query)
   uniprot_list = uniprot_regex(query)
   pdb_list = pdb_regex(query)
@@ -183,6 +192,7 @@ def parse_input(query: str, model):
   # drop duplicates in each list
   proteins_list = list(set(proteins_list))
   molecules_list = list(set(molecules_list))
+  diseases_list = list(set(diseases_list))
   smiles_list = list(set(smiles_list))
   uniprot_list = list(set(uniprot_list))
   pdb_list = list(set(pdb_list))
@@ -191,13 +201,14 @@ def parse_input(query: str, model):
   present = {
       'proteins': len(proteins_list),
       'molecules': len(molecules_list),
+      'diseases': len(diseases_list),
       'smiles': len(smiles_list),
       'uniprot': len(uniprot_list),
       'pdb': len(pdb_list),
       'chembl': len(chembl_list)
   }
 
-  return present, proteins_list, molecules_list, smiles_list, uniprot_list, pdb_list, chembl_list
+  return present, proteins_list, molecules_list, diseases_list, smiles_list, uniprot_list, pdb_list, chembl_list
 
 
 def start_embedding(tool_descriptions_values: list[str]):
@@ -214,13 +225,14 @@ def start_embedding(tool_descriptions_values: list[str]):
 
   return document_embeddings, embed_model
 
-def define_tool_hash(tool: str, proteins_list, names_list, smiles_list, uniprot_list, pdb_list, chembl_list):
+def define_tool_hash(tool: str, proteins_list, names_list, diseases_list, smiles_list, uniprot_list, pdb_list, chembl_list):
   '''
   Defines the tool function hash based on the selected tool and input entities.
     Args:
         tool: The selected tool name.
         proteins_list: A list of detected protein names.
         names_list: A list of detected molecule names.
+        diseases_list: A list of detected disease names.
         smiles_list: A list of detected SMILES strings.
         uniprot_list: A list of detected Uniprot IDs.
         pdb_list: A list of detected PDB IDs.
@@ -272,6 +284,9 @@ def define_tool_hash(tool: str, proteins_list, names_list, smiles_list, uniprot_
   elif tool == 'docking_node':
     tool_function_hash = {
         'docking_node': [docking_node, [smiles_list, proteins_list[0]]]}
+  elif tool == 'target_node':
+    tool_function_hash = {
+        'target_node': [target_node, [diseases_list]]}
   elif tool == 'substitution_node':
     tool_function_hash = {
         'substitution_node': [substitution_node, [smiles_list]]}
@@ -284,13 +299,14 @@ def define_tool_hash(tool: str, proteins_list, names_list, smiles_list, uniprot_
   
   return tool_function_hash
 
-def define_tool_reqs(tool: str, proteins_list, names_list, smiles_list, uniprot_list, pdb_list, chembl_list):
+def define_tool_reqs(tool: str, proteins_list, names_list, diseases_list, smiles_list, uniprot_list, pdb_list, chembl_list):
   '''
   Defines the tool function requirements based on the selected tool and input entities.
     Args:
         tool: The selected tool name.
         proteins_list: A list of detected protein names.
         names_list: A list of detected molecule names.
+        diseases_list: A list of detected disease names.
         smiles_list: A list of detected SMILES strings.
         uniprot_list: A list of detected Uniprot IDs.
         pdb_list: A list of detected PDB IDs.
@@ -342,6 +358,9 @@ def define_tool_reqs(tool: str, proteins_list, names_list, smiles_list, uniprot_
   elif tool == 'docking_node':
     tool_function_reqs = {
         'docking_node': [[smiles_list, proteins_list], ['SMILES strings', 'protein names']]}
+  elif tool == 'target_node':
+    tool_function_reqs = {
+        'target_node': [[diseases_list], ['disease names']]}
   elif tool == 'substitution_node':
     tool_function_reqs = {
         'substitution_node': [[smiles_list], ['SMILES strings']]}
@@ -366,6 +385,7 @@ def intake(query: str, parse_model, embed_model, document_embeddings):
         present: A dictionary with counts of each entity type found.
         proteins_list: A list of detected protein names.
         names_list: A list of detected molecule names.
+        diseases_list: A list of detected disease names.
         smiles_list: A list of detected SMILES strings.
         uniprot_list: A list of detected Uniprot IDs.
         pdb_list: A list of detected PDB IDs.
@@ -389,8 +409,8 @@ def intake(query: str, parse_model, embed_model, document_embeddings):
   print(f"Second choice is: {best_tools[1]}")
   print(f"Third choice is: {best_tools[2]}")
 
-  present, proteins_list, names_list, smiles_list, uniprot_list, pdb_list, chembl_list = parse_input(query, parse_model)
-  for (entity_type, entity_list) in zip(present, [proteins_list, names_list, smiles_list, uniprot_list, pdb_list, chembl_list]):
+  present, proteins_list, names_list, diseases_list, smiles_list, uniprot_list, pdb_list, chembl_list = parse_input(query, parse_model)
+  for (entity_type, entity_list) in zip(present, [proteins_list, names_list, diseases_list, smiles_list, uniprot_list, pdb_list, chembl_list]):
     if present[entity_type] > 0:
       print(f'{entity_type}: {present[entity_type]}')
       for entity in entity_list:
@@ -399,8 +419,8 @@ def intake(query: str, parse_model, embed_model, document_embeddings):
   if present['molecules'] > 0 and present['smiles'] == 0:
     smiles_list, _, _ = smiles_node(names_list)
     print(f'Retrieved SMILES for {len(smiles_list)} molecules.')
-  
-  return best_tools, present, proteins_list, names_list, smiles_list, uniprot_list, pdb_list, chembl_list
+
+  return best_tools, present, proteins_list, names_list, diseases_list, smiles_list, uniprot_list, pdb_list, chembl_list
 
 def second_intake(query: str, context: str, parse_model, embed_model, document_embeddings):
   '''
@@ -415,6 +435,7 @@ def second_intake(query: str, context: str, parse_model, embed_model, document_e
         best_tools: A list of the best tool choices.
         present: A dictionary with counts of each entity type found.
         proteins_list: A list of detected protein names.
+        diseases_list: A list of detected disease names.
         names_list: A list of detected molecule names.
         smiles_list: A list of detected SMILES strings.
         uniprot_list: A list of detected Uniprot IDs.
@@ -439,8 +460,8 @@ def second_intake(query: str, context: str, parse_model, embed_model, document_e
   print(f"Second choice is: {best_tools[1]}")
   print(f"Third choice is: {best_tools[2]}")
 
-  present, proteins_list, names_list, smiles_list, uniprot_list, pdb_list, chembl_list = parse_input(context, parse_model)
-  for (entity_type, entity_list) in zip(present, [proteins_list, names_list, smiles_list, uniprot_list, pdb_list, chembl_list]):
+  present, proteins_list, names_list, diseases_list, smiles_list, uniprot_list, pdb_list, chembl_list = parse_input(context, parse_model)
+  for (entity_type, entity_list) in zip(present, [proteins_list, names_list, diseases_list, smiles_list, uniprot_list, pdb_list, chembl_list]):
     if present[entity_type] > 0:
       print(f'{entity_type}: {present[entity_type]}')
       for entity in entity_list:
@@ -449,5 +470,5 @@ def second_intake(query: str, context: str, parse_model, embed_model, document_e
   if present['molecules'] > 0 and present['smiles'] == 0:
     smiles_list, _, _ = smiles_node(names_list)
     print(f'Retrieved SMILES for {len(smiles_list)} molecules.')
-  
-  return best_tools, present, proteins_list, names_list, smiles_list, uniprot_list, pdb_list, chembl_list
+
+  return best_tools, present, proteins_list, names_list, diseases_list, smiles_list, uniprot_list, pdb_list, chembl_list
