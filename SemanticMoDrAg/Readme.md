@@ -1,8 +1,3 @@
 # Semantic MoDrAg
 
-## Parsing
-- REGEX parsing for **SMILES**
-
-```
-newchat = chat.chat()
-```
+See main repo page for info!
