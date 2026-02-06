@@ -24,8 +24,10 @@ def function_node(agr: type, arg2: type):
 The function can take any number of arguements but must return exactly 3: a list (can be nested), a string containing the function results in text form (to be given to the LLM as context), and an optional image or list of images. If it is a single image it should still be given as a list.
 - The function can be aded to either *modrag_protein_functions, modrag_property_functions,* or *modrag_molecule_functions*. Dependencies should be added to the top of the file.
 - Dependencies should also be added to the *requirements.txt* file for installation in the container.
-- A desccription should be aded to the ```full_tool_descriptions``` dictionary in app.py (intake_function.py for Colab). This is the description that will be shown to the user when the AI has selected a tool (for human-in-the-loop approval).
--  
+- A description should be aded to the ```full_tool_descriptions``` dictionary in app.py (intake_function.py for Colab). This is the description that will be shown to the user when the AI has selected a tool (for human-in-the-loop approval).
+-  A description should be aded to the ```tool_descriptions``` dictionary in input_parsing.py. This is the same query that will be used by the embedding model to compare against user embeddings to select the tool.
+- The function name and arguments list should be added to the ```define_tool_hash``` function in input_parsing.py. This hash table is used to run the selected tool.
+- The function name, arguments list, and human-readable version of the arguments should be added to the ```define_tool_reqs``` function in input_parsing.py. This hash table is used to check for the required data before running a tool and for asking the user to provide any missing data. 
 
 
 
