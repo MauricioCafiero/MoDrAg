@@ -1,3 +1,5 @@
+<img src="https://github.com/MauricioCafiero/MauricioCafiero.github.io/blob/main/images/comp_chem_2_small.jpg" height="200" align="top" style="height:240px">
+
 # MoDrAg2
 A *Mo*dular *Dr*ug-design AI *Ag*ent. 
 #### This page describes the *semantic* version of the agent. For the LanGraph-based agent, see [this page](https://github.com/MauricioCafiero/MoDrAg/blob/main/Langgraph_modrag.md). <br>
@@ -68,6 +70,9 @@ The function can take any number of arguements but must return exactly 3: a list
 
 That should be it! The code should be able to select for and deplot the new function.
 
+## This is MoDrAg! your computational chemistry helper!
+
+<img src='https://github.com/MauricioCafiero/MauricioCafiero.github.io/blob/main/images/MoDrAg_mascot.JPG' height="200" align="top" style="height:240px">
 
 
 
