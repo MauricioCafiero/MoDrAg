@@ -5,11 +5,14 @@ A *Mo*dular *Dr*ug-design AI *Ag*ent.
 
 See a live demo [on HuggingFace!](https://huggingface.co/spaces/cafierom/MoDrAg2)
 
+See a demo video [here!](https://www.linkedin.com/posts/mauricio-cafiero-5481259b_drugdesign-aiagent-docking-activity-7425906308853190656-FlTW?utm_source=share&utm_medium=member_ios&rcm=ACoAABUygsgB1ocjqc_UIBRFQJEZ3QMcuNRWSas)
+
 #### This page describes the *semantic* version of the agent. For the LanGraph-based agent, see [this page](https://github.com/MauricioCafiero/MoDrAg/blob/main/LangGraphMoDrAg/Readme.md). <br>
 
 - [Modes](#modes)
 - [Abilities](#abilities)
 - [Philosophy](#philosophy)
+- [Screenshots](#screenshots)
 - [Adding functions to the agent](#how-to-add-a-function-to-the-agent)
 
 ## Modes
@@ -50,6 +53,12 @@ A nicely featured drug-design helper pipeline, including:
 - LLM is used for chat and for interpretation of tool results (Gemma 3 1B).
 - Everything ‘open,' avoiding using paid services, i.e. not using the OpenAI or Anthropic APIs, etc. where possible.
 - Uses a small LM so it can be deployed almost anywhere!
+
+## Screenshots
+
+<img src="https://github.com/MauricioCafiero/MauricioCafiero.github.io/blob/main/images/chat_pics1.jpg" align="top" style="height:550px"> <img src="https://github.com/MauricioCafiero/MauricioCafiero.github.io/blob/main/images/chat_pics2.jpg" align="top" style="height:550px">
+
+<img src="https://github.com/MauricioCafiero/MauricioCafiero.github.io/blob/main/images/chat_pics3.jpg" align="top" style="height:550px"> <img src="https://github.com/MauricioCafiero/MauricioCafiero.github.io/blob/main/images/chat_pics4.jpg" align="top" style="height:550px">
 
 ## How to add a function to the Agent
 - A function can be easily added if it only requires input in the form of: SMILES, molecule names, protein names, disease name, Chembl IDs, Uniprot accession codes, or PBD IDs.
