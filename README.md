@@ -82,14 +82,4 @@ The function can take any number of arguements but must return exactly 3: a list
 - The function name and arguments list should be added to the ```define_tool_hash``` function in input_parsing.py. This hash table is used to run the selected tool.
 - The function name, arguments list, and human-readable version of the arguments should be added to the ```define_tool_reqs``` function in input_parsing.py. This hash table is used to check for the required data before running a tool and for asking the user to provide any missing data.
 
-That should be it! The code should be able to select for and deplot the new function.
-
-## This is MoDrAg! your computational chemistry helper!
-
-<img src='https://github.com/MauricioCafiero/MauricioCafiero.github.io/blob/main/images/MoDrAg_mascot.JPG' height="200" align="top" style="height:240px">
-
-
-
-
-
-
+That should be it! The code should be able to select for and deploy the new function.
