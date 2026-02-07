@@ -5,7 +5,7 @@ A *Mo*dular *Dr*ug-design AI *Ag*ent.
 
 See a live demo [on HuggingFace!](https://huggingface.co/spaces/cafierom/MoDrAg2)
 
-#### This page describes the *semantic* version of the agent. For the LanGraph-based agent, see [this page](https://github.com/MauricioCafiero/MoDrAg/blob/main/Langgraph_modrag.md). <br>
+#### This page describes the *semantic* version of the agent. For the LanGraph-based agent, see [this page](https://github.com/MauricioCafiero/MoDrAg/blob/main/LangGraphMoDrAg/Readme.md). <br>
 
 - [Modes](#modes)
 - [Abilities](#abilities)
