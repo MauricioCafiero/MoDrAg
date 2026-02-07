@@ -717,14 +717,14 @@ def websearch_node(query: str, embed_model, proxy_flag: bool = True) -> (list[st
       max_hits = len(scores)
     top_hits = []
     hits_idx = 0
-    while hits_idx < 10:
+    while hits_idx < max_hits:
       current_hit_idx = np.argmax(scores[0])
       current_score = scores[0][current_hit_idx].item()
       top_hits.append((titles[current_hit_idx], links[current_hit_idx], current_score))
       scores[0][current_hit_idx] = -1
       hits_idx += 1
 
-    search_string = f'The top 10 hits for your query are:\n'
+    search_string = f'The top {max_hits} hits for your query are:\n'
     i = 0
     for title, link, score in top_hits:
       search_string += f'{i}. {title}\nLink: {link}\nScore: {score:.3f}\n\n'

@@ -11,6 +11,7 @@ import ast
 # imports for HF Spaces
 import torch
 import gradio as gr
+#import spaces
 # end imports for HF Spaces
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -330,7 +331,13 @@ or enter "edit" to edit a list.'
         with open('chat_session_history.txt', 'w') as f:
           pp.pp(self.chat_history, stream=f)
         try:
-          img = Image.open(io.BytesIO(self.results_images[0].data))
+          #on colab
+          #img = Image.open(io.BytesIO(self.results_images[0].data))
+
+          #on spaces
+          filename = "chat_image.png"
+          self.results_images[0].save(filename)
+          img = Image.open(filename)
         except:
           img = None
         
@@ -389,7 +396,6 @@ or enriching information where appropriate."
       try:
         #on colab
         #img = Image.open(io.BytesIO(self.results_images[0].data))
-        #img = Image.open(self.results_images[0])
 
         #on spaces
         filename = "chat_image.png"
@@ -734,14 +740,14 @@ def websearch_node(query: str, embed_model, proxy_flag: bool = True) -> (list[st
       max_hits = len(scores)
     top_hits = []
     hits_idx = 0
-    while hits_idx < 10:
+    while hits_idx < max_hits:
       current_hit_idx = np.argmax(scores[0])
       current_score = scores[0][current_hit_idx].item()
       top_hits.append((titles[current_hit_idx], links[current_hit_idx], current_score))
       scores[0][current_hit_idx] = -1
       hits_idx += 1
 
-    search_string = f'The top 10 hits for your query are:\n'
+    search_string = f'The top {max_hits} hits for your query are:\n'
     i = 0
     for title, link, score in top_hits:
       search_string += f'{i}. {title}\nLink: {link}\nScore: {score:.3f}\n\n'
