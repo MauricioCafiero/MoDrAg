@@ -7,6 +7,8 @@ See a live demo [on HuggingFace!](https://huggingface.co/spaces/cafierom/MoDrAg2
 
 See a demo video [here!](https://www.linkedin.com/posts/mauricio-cafiero-5481259b_drugdesign-aiagent-docking-activity-7425906308853190656-FlTW?utm_source=share&utm_medium=member_ios&rcm=ACoAABUygsgB1ocjqc_UIBRFQJEZ3QMcuNRWSas)
 
+Run this agent in a [notebook](https://github.com/MauricioCafiero/MoDrAg/blob/main/SemanticMoDrAg/MoDrAg2_CafChem.ipynb) on Google Colab!
+
 #### This page describes the *semantic* version of the agent. For the LanGraph-based agent, see [this page](https://github.com/MauricioCafiero/MoDrAg/blob/main/LangGraphMoDrAg/Readme.md). <br>
 
 - [Modes](#modes)
