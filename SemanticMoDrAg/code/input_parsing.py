@@ -3,7 +3,7 @@ from gliner import GLiNER
 import re
 import numpy as np
 from rdkit import Chem
-from modrag_molecule_functions import name_node, smiles_node, related_node
+from modrag_molecule_functions import name_node, smiles_node, related_node, structure_node
 from modrag_task_graphs import get_actives_for_protein, get_predictions_for_protein, dock_from_names
 from modrag_protein_functions import uniprot_node, listbioactives_node, getbioactives_node, predict_node, gpt_node, pdb_node, find_node, docking_node, target_node
 from modrag_property_functions import substitution_node, lipinski_node, pharmfeature_node
@@ -38,7 +38,7 @@ Find the similarity in the pharmacophores between ibuprofen and aspirin.',
     'name_node': 'Find the name of this molecule c1cc(O)ccc1',
     'smiles_node': 'Finds SMILES strings for cyclohexane and aspirin',
     'related_node': 'Find molecules similar to c1cc(O)ccc1',
-    
+    'structure_node': 'Find the structure of the molecule with SMILES string c1cc(O)ccc1, or the name Aspirin.',
     # modrag_task_graphs.py
     'get_actives_for_protein': 'Find the bioactive molecules for the protein DNA gyrase.',
     'get_predictions_for_protein': 'Predict the IC50 value for c1cc(O)ccc1 in the protein DNA gyrase.',
@@ -251,6 +251,9 @@ def define_tool_hash(tool: str, proteins_list, names_list, diseases_list, smiles
   elif tool == 'related_node':
     tool_function_hash = {
         'related_node': [related_node, [smiles_list]]}
+  elif tool == 'structure_node':
+    tool_function_hash = {
+        'structure_node': [structure_node, [smiles_list]]}
   elif tool == 'get_predictions_for_protein':
     tool_function_hash = {
         'get_predictions_for_protein': [get_predictions_for_protein, [smiles_list, proteins_list[0]]]}
@@ -325,6 +328,9 @@ def define_tool_reqs(tool: str, proteins_list, names_list, diseases_list, smiles
   elif tool == 'related_node':
     tool_function_reqs = {
         'related_node': [[smiles_list], ['SMILES strings']]}
+  elif tool == 'structure_node':
+    tool_function_reqs = {
+        'structure_node': [[smiles_list], ['SMILES strings']]}
   elif tool == 'get_predictions_for_protein':
     tool_function_reqs = {
         'get_predictions_for_protein': [[smiles_list, proteins_list], ['SMILES strings', 'protein names']]}

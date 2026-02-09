@@ -10,6 +10,7 @@ import os, re
 from rdkit import RDConfig
 import pubchempy as pcp
 from PIL import Image
+from collections import Counter
 
 def name_node(smiles_list: list[str]) -> (list[str], str):
   '''
@@ -119,3 +120,43 @@ def related_node(smiles_list: list[str]) -> (list[list[str]], str, list):
         all_images.append(None)
 
   return total_similar_list, related_string, all_images
+
+def structure_node(smiles_list: list[str]) -> (list[str], str, list):
+  '''
+    Generates the 3D structure of the molecule based on the smiles string.
+      Args:
+        smiles: the input smiles string
+      Returns:
+        all_structures: a list of strings of the 3D structure of the molecule
+        output_string: a string of the chemical formulae.
+        all_images: a list of images of the 3D structure of the molecule
+  '''
+  print("structure tool")
+
+  all_images = []
+  all_structures = []
+  output_string = ''
+
+  for smile in smiles_list:
+    mol = Chem.MolFromSmiles(smile)
+    molH = Chem.AddHs(mol)
+    AllChem.EmbedMolecule(molH)
+    AllChem.MMFFOptimizeMolecule(molH)
+
+    structure_string = ""
+    all_symbols = []
+    for atom in molH.GetAtoms():
+      symbol = atom.GetSymbol()
+      all_symbols.append(symbol)
+      pos = molH.GetConformer().GetAtomPosition(atom.GetIdx())
+      structure_string += f'{symbol}  {pos[0]}  {pos[1]}  {pos[2]}\n'
+      
+    atom_freqs = Counter(all_symbols)
+    formula = ''.join([f'{atom}{count}' for atom, count in atom_freqs.items()]) 
+
+    output_string += f'For {smile}: Formula is: {formula}\n'
+    all_structures.append(structure_string)
+    img = Draw.MolToImage(molH)
+    all_images.append(img)
+
+  return all_structures, output_string, all_images

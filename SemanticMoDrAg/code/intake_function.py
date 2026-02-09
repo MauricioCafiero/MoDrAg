@@ -637,6 +637,7 @@ full_tool_descriptions = {
   'smiles_node' : 'Queries Pubchem for the smiles string of the molecule based on the name.',
   'name_node' : 'Queries Pubchem for the name of the molecule based on the smiles string.',
   'related_node' : 'Queries Pubchem for similar molecules based on the smiles string or name.',
+  'structure_node' : 'Generates the 3D structure and chemical formula of the molecule based on the name or smiles string.',
   'substitution_node' : 'A simple substitution routine that looks for a substituent on a phenyl ring and\
 substitutes different fragments in that location. Returns a list of novel molecules and their\
 QED score (1 is most drug-like, 0 is least drug-like).',
