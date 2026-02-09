@@ -133,7 +133,7 @@ def structure_node(smiles_list: list[str]) -> (list[str], str, list):
   '''
   print("structure tool")
 
-  all_images = []
+  all_mols = []
   all_structures = []
   output_string = ''
 
@@ -156,7 +156,8 @@ def structure_node(smiles_list: list[str]) -> (list[str], str, list):
 
     output_string += f'For {smile}: Formula is: {formula}\n'
     all_structures.append(structure_string)
-    img = Draw.MolToImage(molH)
-    all_images.append(img)
+    all_mols.append(molH)
+  
+  img = Draw.MolsToGridImage(all_mols, molsPerRow=3, subImgSize=(250, 250))
 
-  return all_structures, output_string, all_images
+  return all_structures, output_string, [img]
