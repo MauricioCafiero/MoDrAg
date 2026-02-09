@@ -170,11 +170,9 @@ def parse_input(query: str, model):
 
   return present, proteins_list, molecules_list, diseases_list, smiles_list, uniprot_list, pdb_list, chembl_list
 
-def caf_parse(input_text: str):
+def caf_parse(input_text: str, model):
   '''
   '''
-
-  model = start_ner()
   present, proteins_list, molecules_list, diseases_list, smiles_list, uniprot_list, pdb_list, chembl_list = parse_input(input_text, model)
 
   return {
