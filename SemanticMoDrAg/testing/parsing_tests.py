@@ -137,7 +137,7 @@ def test_chatgpt(query, client):
   '''
   '''
   start = time.time()
-  response = chatgpt_parse('Dock paracetamol in DRD2')
+  response = parse_chatgpt('Dock paracetamol in DRD2', client)
   end = time.time()
   print(f'Time taken: {end-start} seconds')
   print(response)
