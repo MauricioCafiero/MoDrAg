@@ -199,6 +199,8 @@ def prep_tests():
   granite_pipe = start_huggingface_model('google/granite-4.0-1b')
   ner_model = start_ner_model()
 
+  return gemma_pipe, granite_pipe, ner_model
+
 def run_tests(query: str, gemma_pipe, granite_pipe, openai_client, anthropic_client, ner_model):
   '''   Runs all the tests for the different parsing methods and prints the results.
      Args:
