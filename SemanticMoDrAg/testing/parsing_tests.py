@@ -25,6 +25,7 @@ def test_caf_parse(query, ner_model):
   print(f'Time taken: {end-start} seconds')
   print(response)
   print('================================================================')
+  return response
 
 def start_huggingface_model(model_name):
   '''
@@ -97,6 +98,7 @@ def test_huggingface(query, pipe):
   print(f'Time taken: {end-start} seconds')
   print(response)
   print('================================================================')
+  return response
 
 
 def parse_chatgpt(query: str, client):
@@ -141,6 +143,7 @@ def test_chatgpt(query, client):
   end = time.time()
   print(f'Time taken: {end-start} seconds')
   print(response)
+  return response
 
 def parse_anthropic(query: str, client):
   '''
@@ -187,3 +190,32 @@ def test_anthropic(query, client):
   end = time.time()
   print(f'Time taken: {end-start} seconds')
   print(response)
+  return response
+
+def prep_tests():
+  '''
+  '''
+  gemma_pipe = start_huggingface_model('google/gemma-3-1b-it')
+  granite_pipe = start_huggingface_model('google/granite-4.0-1b')
+  ner_model = start_ner_model()
+
+def run_tests(query: str, gemma_pipe, granite_pipe, openai_client, anthropic_client, ner_model):
+  '''   Runs all the tests for the different parsing methods and prints the results.
+     Args:
+         query: The input query string to test.
+         gemma_pipe: The Hugging Face pipeline for the Gemma model.
+         granite_pipe: The Hugging Face pipeline for the Granite model.
+         openai_client: The OpenAI client for ChatGPT.
+         anthropic_client: The Anthropic client for Claude.
+         ner_model: The NER model to use for the Caf parser.
+  '''
+
+  result = test_caf_parse(query, ner_model)
+  print(9'================================================================')
+  result = test_huggingface(query, gemma_pipe)
+  print('================================================================')
+  result = test_huggingface(query, granite_pipe)
+  print('================================================================')
+  result = test_chatgpt(query, openai_client)
+  print('================================================================')
+  result = test_anthropic(query, anthropic_client)
