@@ -196,7 +196,7 @@ def prep_tests():
   '''
   '''
   gemma_pipe = start_huggingface_model('google/gemma-3-1b-it')
-  granite_pipe = start_huggingface_model('google/granite-4.0-1b')
+  granite_pipe = start_huggingface_model('ibm-granite/granite-4.0-1b')
   ner_model = start_ner_model()
 
   return gemma_pipe, granite_pipe, ner_model
