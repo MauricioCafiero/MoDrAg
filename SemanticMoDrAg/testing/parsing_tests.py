@@ -5,7 +5,7 @@ from transformers import pipeline
 import torch
 from openai import OpenAI
 from anthropic import Anthropic
-import os, time
+import os, time, ast
 
 
 ''' Queries to test ================================================================'''
@@ -23,9 +23,9 @@ def test_caf_parse(query, ner_model):
   response = caf_parse(query, ner_model)
   end = time.time() 
   print(f'Time taken: {end-start} seconds')
-  print(response)
+  #print(response)
   print('================================================================')
-  return response
+  return response, end-start
 
 def start_huggingface_model(model_name):
   '''
@@ -96,15 +96,16 @@ def test_huggingface(query, pipe):
   response = parse_huggingface(query, pipe)
   end = time.time() 
   print(f'Time taken: {end-start} seconds')
-  print(response)
+  #print(response)
   print('================================================================')
-  return response
+  return response, end-start
 
 
 def parse_chatgpt(query: str, client):
   '''
 
   '''
+  print('Testing ChatGPT...')
   dd_message = client.responses.create(
                           instructions = '''
     ## Your job is to extract drug-design related information from the user's input. You will look for:
@@ -142,12 +143,13 @@ def test_chatgpt(query, client):
   response = parse_chatgpt('Dock paracetamol in DRD2', client)
   end = time.time()
   print(f'Time taken: {end-start} seconds')
-  print(response)
-  return response
+  #print(response)
+  return response, end-start
 
 def parse_anthropic(query: str, client):
   '''
   '''
+  print('Testing Anthropic Claude...')
   dd_message = client.messages.create(
   model="claude-haiku-4-5-20251001",
   max_tokens=1000,
@@ -189,8 +191,8 @@ def test_anthropic(query, client):
   response = parse_anthropic(query, client)
   end = time.time()
   print(f'Time taken: {end-start} seconds')
-  print(response)
-  return response
+  #print(response)
+  return response, end-start
 
 def prep_tests():
   '''
@@ -211,13 +213,41 @@ def run_tests(query: str, gemma_pipe, granite_pipe, openai_client, anthropic_cli
          anthropic_client: The Anthropic client for Claude.
          ner_model: The NER model to use for the Caf parser.
   '''
+  times = []
+  result, time = test_caf_parse(query, ner_model)
+  times.append(time)
+  clean_and_test_results(result)
+  print('================================================================')
+  result, time = test_huggingface(query, gemma_pipe)
+  times.append(time)
+  clean_and_test_results(result)
+  print('================================================================')
+  result, time = test_huggingface(query, granite_pipe)
+  times.append(time)
+  clean_and_test_results(result)
+  print('================================================================')
+  result, time = test_chatgpt(query, openai_client)
+  times.append(time)
+  clean_and_test_results(result)
+  print('================================================================')
+  result, time = test_anthropic(query, anthropic_client)
+  times.append(time)
+  clean_and_test_results(result)
 
-  result = test_caf_parse(query, ner_model)
-  print('================================================================')
-  result = test_huggingface(query, gemma_pipe)
-  print('================================================================')
-  result = test_huggingface(query, granite_pipe)
-  print('================================================================')
-  result = test_chatgpt(query, openai_client)
-  print('================================================================')
-  result = test_anthropic(query, anthropic_client)
+  methods = ['Caf parser', 'Gemma', 'Granite', 'ChatGPT', 'Claude']
+  for method, time in zip(methods, times):
+    print(f'{method} took {time} seconds')
+
+def clean_and_test_results(results):
+  '''
+  '''
+  if type(results) != dict:
+    try:
+      results = str(results).strip().replace('\n', '').strip("```json").strip("```")    
+      results = ast.literal_eval(results)
+    except:
+      print('Failed to parse results')
+
+  for key, value in results.items():
+    if len(value) != 0:
+      print(f'{key}: {value}')
