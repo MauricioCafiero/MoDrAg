@@ -238,6 +238,7 @@ def run_tests(query: str, truth: dict, gemma_pipe, granite_pipe, openai_client, 
   for method, time in zip(methods, times):
     print(f'{method} took {time} seconds')
 
+
 def clean_and_test_results(results, truth, method_name):
   '''
    Cleans the results from the parsing methods and prints the extracted information.
@@ -264,8 +265,8 @@ def clean_and_test_results(results, truth, method_name):
   misses = 0
   for key in key_names:
     if (len(results[key]) != 0 and len(truth[key]) != 0) and (len(results[key]) == len(truth[key])):
-      for truth in truth[key]:
-        if truth.lower() in [item.lower() for item in results[key]]:
+      for truth_val in truth[key]:
+        if truth_val.lower() in [item.lower() for item in results[key]]:
           hits += 1
         else:
           misses += 1
@@ -274,4 +275,4 @@ def clean_and_test_results(results, truth, method_name):
         if result.lower() not in [item.lower() for item in truth[key]]:
           misses += 1
   
-    print(f'{method_name} had {hits} hits and {misses} misses')
+  print(f'{method_name} had {hits} hits and {misses} misses')
