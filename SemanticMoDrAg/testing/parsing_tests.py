@@ -264,15 +264,18 @@ def clean_and_test_results(results, truth, method_name):
   hits = 0
   misses = 0
   for key in key_names:
-    if (len(results[key]) != 0 and len(truth[key]) != 0) and (len(results[key]) == len(truth[key])):
-      for truth_val in truth[key]:
-        if truth_val.lower() in [item.lower() for item in results[key]]:
-          hits += 1
-        else:
-          misses += 1
-    elif (len(results[key]) != 0 and len(truth[key]) != 0) and (len(results[key]) != len(truth[key])):
-      for result in results[key]:
-        if result.lower() not in [item.lower() for item in truth[key]]:
-          misses += 1
+    try:
+      if (len(results[key]) != 0 and len(truth[key]) != 0) and (len(results[key]) == len(truth[key])):
+        for truth_val in truth[key]:
+          if truth_val.lower() in [item.lower() for item in results[key]]:
+            hits += 1
+          else:
+            misses += 1
+      elif (len(results[key]) != 0 and len(truth[key]) != 0) and (len(results[key]) != len(truth[key])):
+        for result in results[key]:
+          if result.lower() not in [item.lower() for item in truth[key]]:
+            misses += 1
+    except:
+      misses += len(truth[key])
   
   print(f'{method_name} had {hits} hits and {misses} misses')
