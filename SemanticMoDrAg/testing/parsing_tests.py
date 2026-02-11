@@ -213,7 +213,7 @@ def run_tests(query: str, gemma_pipe, granite_pipe, openai_client, anthropic_cli
   '''
 
   result = test_caf_parse(query, ner_model)
-  print(9'================================================================')
+  print('================================================================')
   result = test_huggingface(query, gemma_pipe)
   print('================================================================')
   result = test_huggingface(query, granite_pipe)
