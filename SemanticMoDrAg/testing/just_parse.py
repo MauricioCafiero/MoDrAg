@@ -176,11 +176,11 @@ def caf_parse(input_text: str, model):
   present, proteins_list, molecules_list, diseases_list, smiles_list, uniprot_list, pdb_list, chembl_list = parse_input(input_text, model)
 
   return {
-      'proteins': proteins_list,
-      'molecules': molecules_list,
-      'diseases': diseases_list,
-      'smiles': smiles_list,
-      'uniprot': uniprot_list,
-      'pdb': pdb_list,
-      'chembl': chembl_list
+      'proteins_list': proteins_list,
+      'names_list': molecules_list,
+      'diseases_list': diseases_list,
+      'smiles_list': smiles_list,
+      'uniprot_list': uniprot_list,
+      'pdb_list': pdb_list,
+      'chembl_list': chembl_list
   }
