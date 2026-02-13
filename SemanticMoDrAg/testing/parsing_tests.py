@@ -271,10 +271,17 @@ def clean_and_test_results(results, truth, method_name):
             hits += 1
           else:
             misses += 1
-      elif (len(results[key]) != 0 and len(truth[key]) != 0) and (len(results[key]) != len(truth[key])):
-        for result in results[key]:
-          if result.lower() not in [item.lower() for item in truth[key]]:
-            misses += 1
+      elif len(results[key]) != len(truth[key]):
+        if len(results[key]) == 0:
+          misses += len(truth[key])
+        elif len(truth[key]) == 0:
+          misses += len(results[key])
+        else:
+          for result in results[key]:
+            if result.lower() not in [item.lower() for item in truth[key]]:
+              misses += 1
+            elif result.lower() in [item.lower() for item in truth[key]]:
+              hits += 1
     except:
       misses += len(truth[key])
   
