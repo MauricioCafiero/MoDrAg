@@ -213,26 +213,29 @@ def run_tests(query: str, truth: dict, gemma_pipe, granite_pipe, openai_client, 
          anthropic_client: The Anthropic client for Claude.
          ner_model: The NER model to use for the Caf parser.
   '''
-  times = []
+  total_string = ''
   result, time = test_caf_parse(query, ner_model)
-  times.append(time)
-  clean_and_test_results(result, truth, 'caf_parse', time)
+  local_string = clean_and_test_results(result, truth, 'caf_parse', time)
+  total_string += local_string + '\n'
   print('================================================================')
   result, time = test_huggingface(query, gemma_pipe)
-  times.append(time)
-  clean_and_test_results(result, truth, 'gemma', time)
+  local_string = clean_and_test_results(result, truth, 'gemma', time)
+  total_string += local_string + '\n'
   print('================================================================')
   result, time = test_huggingface(query, granite_pipe)
-  times.append(time)
-  clean_and_test_results(result, truth, 'granite', time)
+  local_string = clean_and_test_results(result, truth, 'granite', time)
+  total_string += local_string + '\n'
   print('================================================================')
   result, time = test_chatgpt(query, openai_client)
-  times.append(time)
-  clean_and_test_results(result, truth, 'chatgpt', time)
+  local_string = clean_and_test_results(result, truth, 'chatgpt', time)
+  total_string += local_string + '\n'
   print('================================================================')
   result, time = test_anthropic(query, anthropic_client)
-  times.append(time)
-  clean_and_test_results(result, truth, 'anthropic', time)
+  local_string = clean_and_test_results(result, truth, 'anthropic', time)
+  total_string += local_string
+
+  print('================================================================')
+  print(total_string)
 
 
 def clean_and_test_results(results, truth, method_name, time_taken):
@@ -287,4 +290,6 @@ def clean_and_test_results(results, truth, method_name, time_taken):
     except:
       misses += len(truth[key])
   
-  print(f'{method_name} had {hits} hits and {misses} misses and took {time_taken:.3f} seconds')
+  return_string = f'{method_name} had {hits} hits and {misses} misses and took {time_taken:.3f} seconds'
+
+  return return_string
