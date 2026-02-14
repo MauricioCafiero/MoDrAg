@@ -216,36 +216,33 @@ def run_tests(query: str, truth: dict, gemma_pipe, granite_pipe, openai_client, 
   times = []
   result, time = test_caf_parse(query, ner_model)
   times.append(time)
-  clean_and_test_results(result, truth, 'caf_parse')
+  clean_and_test_results(result, truth, 'caf_parse', time)
   print('================================================================')
   result, time = test_huggingface(query, gemma_pipe)
   times.append(time)
-  clean_and_test_results(result, truth, 'gemma')
+  clean_and_test_results(result, truth, 'gemma', time)
   print('================================================================')
   result, time = test_huggingface(query, granite_pipe)
   times.append(time)
-  clean_and_test_results(result, truth, 'granite')
+  clean_and_test_results(result, truth, 'granite', time)
   print('================================================================')
   result, time = test_chatgpt(query, openai_client)
   times.append(time)
-  clean_and_test_results(result, truth, 'chatgpt')
+  clean_and_test_results(result, truth, 'chatgpt', time)
   print('================================================================')
   result, time = test_anthropic(query, anthropic_client)
   times.append(time)
-  clean_and_test_results(result, truth, 'anthropic')
-
-  methods = ['Caf parser', 'Gemma', 'Granite', 'ChatGPT', 'Claude']
-  for method, time in zip(methods, times):
-    print(f'{method} took {time} seconds')
+  clean_and_test_results(result, truth, 'anthropic', time)
 
 
-def clean_and_test_results(results, truth, method_name):
+def clean_and_test_results(results, truth, method_name, time_taken):
   '''
    Cleans the results from the parsing methods and prints the extracted information.
      Args:
          results: The raw results from the parsing method.
          truth: The ground truth dictionary for comparison (not used in this function).
          method_name: The name of the parsing method being tested.
+         time_taken: The time taken for the parsing method to execute.
   '''
 
   if type(results) != dict:
@@ -290,4 +287,4 @@ def clean_and_test_results(results, truth, method_name):
     except:
       misses += len(truth[key])
   
-  print(f'{method_name} had {hits} hits and {misses} misses')
+  print(f'{method_name} had {hits} hits and {misses} misses and took {time_taken:.3f} seconds')
