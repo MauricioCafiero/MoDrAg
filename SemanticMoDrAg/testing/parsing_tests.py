@@ -258,6 +258,11 @@ def clean_and_test_results(results, truth, method_name):
   for key, value in results.items():
     if len(value) != 0:
       print(f'{key}: {value}')
+    if type(value) == str:
+      if ',' in value:
+        value = [item.strip() for item in value.split(',')]
+      else:
+        results[key] = [value]
 
   key_names = ['smiles_list', 'names_list', 'proteins_list', 'pdb_list', 'diseases_list', 'uniprot_list', 'chembl_list']
 
