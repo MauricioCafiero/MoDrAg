@@ -214,24 +214,25 @@ def run_tests(query: str, truth: dict, gemma_pipe, granite_pipe, openai_client, 
          ner_model: The NER model to use for the Caf parser.
   '''
   total_string = ''
-  result, time = test_caf_parse(query, ner_model)
-  local_string = clean_and_test_results(result, truth, 'caf_parse', time)
+  
+  result, timing = test_caf_parse(query, ner_model)
+  local_string = clean_and_test_results(result, truth, 'caf_parse', timing)
   total_string += local_string + '\n'
   print('================================================================')
-  result, time = test_huggingface(query, gemma_pipe)
-  local_string = clean_and_test_results(result, truth, 'gemma', time)
+  result, timing = test_huggingface(query, gemma_pipe)
+  local_string = clean_and_test_results(result, truth, 'gemma', timing)
   total_string += local_string + '\n'
   print('================================================================')
-  result, time = test_huggingface(query, granite_pipe)
-  local_string = clean_and_test_results(result, truth, 'granite', time)
+  result, timing = test_huggingface(query, granite_pipe)
+  local_string = clean_and_test_results(result, truth, 'granite', timing)
   total_string += local_string + '\n'
   print('================================================================')
-  result, time = test_chatgpt(query, openai_client)
-  local_string = clean_and_test_results(result, truth, 'chatgpt', time)
+  result, timing = test_chatgpt(query, openai_client)
+  local_string = clean_and_test_results(result, truth, 'chatgpt', timing)
   total_string += local_string + '\n'
   print('================================================================')
-  result, time = test_anthropic(query, anthropic_client)
-  local_string = clean_and_test_results(result, truth, 'anthropic', time)
+  result, timing = test_anthropic(query, anthropic_client)
+  local_string = clean_and_test_results(result, truth, 'anthropic', timing)
   total_string += local_string
 
   print('================================================================')
