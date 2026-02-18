@@ -139,7 +139,10 @@ class chat_manager():
     result_image.save(filename)
     img = Image.open(filename)
 
-    self.chat_history.append({'role': 'user', 'content': '**User uploaded an image for name/SMILES analysis**'})
+    self.query = '**User uploaded an image for name/SMILES analysis**'
+    self.latest_response = nameandsmiles
+    self.results_string = nameandsmiles
+    self.chat_history.append({'role': 'user', 'content': self.query})
     self.chat_history.append({'role': 'assistant', 'content': nameandsmiles})
     self.chat_idx = 2
 
