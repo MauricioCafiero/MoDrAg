@@ -7,6 +7,7 @@ import io, json, pprint as pp
 from scholarly import scholarly, ProxyGenerator
 import numpy as np
 import ast
+from gradio_client import Client, handle_file
 
 # imports for HF Spaces
 import torch
