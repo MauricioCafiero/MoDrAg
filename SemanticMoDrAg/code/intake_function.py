@@ -134,8 +134,7 @@ class chat_manager():
     result_image.save(filename)
     img = Image.open(filename)
 
-    self.chat_history.append({'role': 'user', 'content': '**User uploaded an image for name/SMILES analysis**'})
-    self.chat_history.append({'role': 'assistant', 'content': nameandsmiles})
+    self.chat_history.append(['**User uploaded an image for name/SMILES analysis**',nameandsmiles])
 
     return '', self.chat_history, img
 
