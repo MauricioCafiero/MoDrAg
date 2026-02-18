@@ -59,7 +59,7 @@ def make_smiles(img):
   name_string = name_node(smiles)
   return name_string, new_img
 
-def agent_make_smiles(img):
+def agent_make_smiles(api_flag, img):
   '''
     Takes in an image file and returns the smiles string and a new image of the molecule.
       Args:
@@ -71,11 +71,14 @@ def agent_make_smiles(img):
   output = model.predict_image_file(img, return_atoms_bonds=True, return_confidence=True)
   mol = Chem.MolFromSmiles(output['smiles'])
   new_img_raw = Draw.MolsToGridImage([mol], molsPerRow=1, legends=[output['smiles']])
-  img_list = [new_img_raw]
 
   smiles = output['smiles']
   name_string = name_node(smiles)
-  return name_string, img_list
+
+  if api_flag == 'True':
+      return name_string, new_img_raw
+  else:
+      return name_string, None
 
 
 with gr.Blocks() as imgsmiles:
@@ -85,6 +88,7 @@ with gr.Blocks() as imgsmiles:
       - Black on white iamges work best
       """)
 
+  agent_flag_choice = gr.Radio(choices = ['True', 'False'],label="Are you an Agent?", interactive=True, value='False', scale = 2)
   with gr.Row():
     inputs=gr.Image(type="filepath")
     with gr.Column():
@@ -92,9 +96,10 @@ with gr.Blocks() as imgsmiles:
        img_out = gr.Image(label="New Image")
 
   submit_button = gr.Button("Submit")
-  clear_button = gr.ClearButton("Clear")
+  clear_button = gr.ClearButton([inputs, text_out, img_out], value = "Clear")
+  agent_button = gr.Button("Agent use only")
 
   submit_button.click(make_smiles, [inputs], [text_out, img_out])
-
+  agent_button.click(agent_make_smiles, [agent_flag_choice, inputs], [text_out, img_out])
 
 imgsmiles.launch(mcp_server=True, share=True)
