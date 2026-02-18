@@ -128,13 +128,18 @@ class chat_manager():
 	  api_name="/agent_make_smiles")
 
     nameandsmiles = result[0]
-    result_image = Image.open(result[1])
+    matches = smiles_regex(nameandsmiles)
+    for m in matches:
+      if m in nameandsmiles:
+        nameandsmiles = nameandsmiles.replace(m, f'```{m}```')
 
+    result_image = Image.open(result[1])
     filename = "chat_image.png"
     result_image.save(filename)
     img = Image.open(filename)
 
     self.chat_history.append(['**User uploaded an image for name/SMILES analysis**',nameandsmiles])
+    self.chat_idx = 2
 
     return '', self.chat_history, img
 

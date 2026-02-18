@@ -129,14 +129,19 @@ class chat_manager():
 	  api_name="/agent_make_smiles")
 
     nameandsmiles = result[0]
-    result_image = Image.open(result[1])
+    matches = smiles_regex(nameandsmiles)
+    for m in matches:
+      if m in nameandsmiles:
+        nameandsmiles = nameandsmiles.replace(m, f'```{m}```')
 
+    result_image = Image.open(result[1])
     filename = "chat_image.png"
     result_image.save(filename)
     img = Image.open(filename)
 
     self.chat_history.append({'role': 'user', 'content': '**User uploaded an image for name/SMILES analysis**'})
     self.chat_history.append({'role': 'assistant', 'content': nameandsmiles})
+    self.chat_idx = 2
 
     return '', self.chat_history, img
 
@@ -806,6 +811,7 @@ with gr.Blocks() as modrag:
   top = gr.Markdown(
       """
       # Chat with MoDrAg! The MOdular DRug design AGent!
+      - Upload an image of a molecule to get the name and SMILES string.
       - Use the Agent to run DD tools, chat with the underlying AI, or do a literature search.
       - Click below to see the drug design tools available.
       - Click below to see an explanation of the *modes*.
