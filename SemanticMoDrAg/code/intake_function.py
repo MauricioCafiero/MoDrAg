@@ -116,27 +116,30 @@ class chat_manager():
       Returns:
         chat_history: The chat history.
     '''
-    # Process the uploaded image file
-    new_img = Image.open(filepath)
-    saved_filename = 'saved_input.png'
-    new_img.save(saved_filename)
+    try:
+      new_img = Image.open(filepath)
+      saved_filename = 'saved_input.png'
+      new_img.save(saved_filename)
 
-    client = Client("cafierom/ImageToSmiles")
-    result = client.predict(
-    api_flag = "True",
-	  img=handle_file(saved_filename),
-	  api_name="/agent_make_smiles")
+      client = Client("cafierom/ImageToSmiles")
+      result = client.predict(
+      api_flag = "True",
+	    img=handle_file(saved_filename),
+	    api_name="/agent_make_smiles")
 
-    nameandsmiles = result[0]
-    matches = smiles_regex(nameandsmiles)
-    for m in matches:
-      if m in nameandsmiles:
-        nameandsmiles = nameandsmiles.replace(m, f'```{m}```')
+      nameandsmiles = result[0]
+      matches = smiles_regex(nameandsmiles)
+      for m in matches:
+        if m in nameandsmiles:
+          nameandsmiles = nameandsmiles.replace(m, f'```{m}```')
 
-    result_image = Image.open(result[1])
-    filename = "chat_image.png"
-    result_image.save(filename)
-    img = Image.open(filename)
+      result_image = Image.open(result[1])
+      filename = "chat_image.png"
+      result_image.save(filename)
+      img = Image.open(filename)
+    except:
+      nameandsmiles = 'Sorry, there was an error processing the image. Please try again.'
+      img = None
 
     self.query = '**User uploaded an image for name/SMILES analysis**'
     self.latest_response = nameandsmiles
