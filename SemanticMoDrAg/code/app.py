@@ -7,6 +7,7 @@ import io, json, pprint as pp
 from scholarly import scholarly, ProxyGenerator
 import numpy as np
 import ast
+from gradio_client import Client, handle_file
 
 # imports for HF Spaces
 import torch
@@ -106,6 +107,38 @@ class chat_manager():
     self.query = ''
     self.present = []
     self.chat_history = []
+  
+  def uploaded_pic_chat(self, filepath):
+    '''
+      Chats with the model using an uploaded image.
+
+      Args:
+        file: The image file to send to the model.
+      Returns:
+        chat_history: The chat history.
+    '''
+    # Process the uploaded image file
+    new_img = Image.open(filepath)
+    saved_filename = 'saved_input.png'
+    new_img.save(saved_filename)
+
+    client = Client("cafierom/ImageToSmiles")
+    result = client.predict(
+    api_flag = "True",
+	  img=handle_file(saved_filename),
+	  api_name="/agent_make_smiles")
+
+    nameandsmiles = result[0]
+    result_image = Image.open(result[1])
+
+    filename = "chat_image.png"
+    result_image.save(filename)
+    img = Image.open(filename)
+
+    self.chat_history.append({'role': 'user', 'content': '**User uploaded an image for name/SMILES analysis**'})
+    self.chat_history.append({'role': 'assistant', 'content': nameandsmiles})
+
+    return '', self.chat_history, img
 
   def chat(self, query: str, mode_flag: str = 'AI'):
     '''
@@ -818,6 +851,8 @@ with gr.Blocks() as modrag:
   msg = gr.Textbox(label="Type your messages here and hit enter.", scale = 2)
   with gr.Row():
     chat_btn = gr.Button(value = "Send", scale = 2)
+    upload_btn = gr.UploadButton(label="Upload Image", file_types=["image"], scale=2)
+  with gr.Row():
     clear = gr.ClearButton([msg, chatbot], scale = 2, value="Start new query")
     hard_clear = gr.ClearButton([msg, chatbot], scale = 2, value="Clear history")
 
@@ -827,5 +862,6 @@ with gr.Blocks() as modrag:
   msg.submit(new_chat.chat, [msg, modes], [msg, chatbot, image_holder])
   clear.click(new_chat.reset_chat)
   hard_clear.click(new_chat.hard_reset_chat)
+  upload_btn.upload(new_chat.uploaded_pic_chat, [upload_btn], [msg, chatbot, image_holder])
 
 modrag.launch(debug=False, share=True)

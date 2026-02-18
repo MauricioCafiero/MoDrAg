@@ -1,0 +1,6 @@
+git+https://github.com/thomas0809/MolScribe.git
+rdkit
+torch
+gradio
+PIL
+io

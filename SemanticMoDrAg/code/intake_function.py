@@ -105,6 +105,38 @@ class chat_manager():
     self.query = ''
     self.present = []
     self.chat_history = []
+  
+  def uploaded_pic_chat(self, filepath):
+    '''
+      Chats with the model using an uploaded image.
+
+      Args:
+        file: The image file to send to the model.
+      Returns:
+        chat_history: The chat history.
+    '''
+    # Process the uploaded image file
+    new_img = Image.open(filepath)
+    saved_filename = 'saved_input.png'
+    new_img.save(saved_filename)
+
+    client = Client("cafierom/ImageToSmiles")
+    result = client.predict(
+    api_flag = "True",
+	  img=handle_file(saved_filename),
+	  api_name="/agent_make_smiles")
+
+    nameandsmiles = result[0]
+    result_image = Image.open(result[1])
+
+    filename = "chat_image.png"
+    result_image.save(filename)
+    img = Image.open(filename)
+
+    self.chat_history.append({'role': 'user', 'content': '**User uploaded an image for name/SMILES analysis**'})
+    self.chat_history.append({'role': 'assistant', 'content': nameandsmiles})
+
+    return '', self.chat_history, img
 
   def chat(self, query: str, mode_flag: str = 'AI'):
     '''
