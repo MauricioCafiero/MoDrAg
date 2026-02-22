@@ -264,7 +264,8 @@ def getbioactives_node(chembl_ids_list: list[str]) -> (list[str], str):
       bioactives_list.append(bioact_tuple_list)
     except: 
       bioactives_list.append([])
-      bioactives_string += f'No bioactives found for ChEMBL ID: {chembl_id}\n'      bioactives_string += f'=========================================================================================\n'
+      bioactives_string += f'No bioactives found for ChEMBL ID: {chembl_id}\n'      
+      bioactives_string += f'=========================================================================================\n'
       bioactives_images.append(None)
 
   pic = img.data
