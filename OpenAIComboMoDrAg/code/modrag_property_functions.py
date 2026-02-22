@@ -67,7 +67,8 @@ def substitution_node(smiles_list: list[str]) -> (list[str], str, list):
         mols = [Chem.MolFromSmiles(smile) for smile in new_smiles]
         img = Draw.MolsToGridImage(mols,legends=new_smiles, molsPerRow=4, subImgSize=(250, 250))
         total_sub_images.append(img)
-    except:        total_sub_smiles_list.append([])
+    except:        
+        total_sub_smiles_list.append([])
         total_sub_smiles_string += f"SMILES: {smiles}, Fail\n"
         total_sub_images.append(None)   
 
