@@ -72,9 +72,12 @@ def substitution_node(smiles_list: list[str]) -> (list[str], str, list):
         total_sub_smiles_string += f"SMILES: {smiles}, Fail\n"
         total_sub_images.append(None)   
 
-  pic = img.data
-  with open('current_image.png', 'wb') as f:
-    f.write(pic)
+  try:
+    total_sub_images[0].save('current_image.png')
+  except:
+    pic = total_sub_images[0].data
+    with open('current_image.png', 'wb') as f:
+      f.write(pic)
   img = Image.open('current_image.png')
 
   return total_sub_smiles_list, total_sub_smiles_string, img

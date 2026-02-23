@@ -123,9 +123,12 @@ def related_node(smiles_list: list[str]) -> (list[list[str]], str, list):
         total_similar_list.append([])
         all_images.append(None)
   
-  pic = img.data
-  with open('current_image.png', 'wb') as f:
-    f.write(pic)
+  try:
+    img.save('current_image.png')
+  except:
+    pic = img.data
+    with open('current_image.png', 'wb') as f:
+      f.write(pic)
   img = Image.open('current_image.png')
 
   return total_similar_list, related_string, img
@@ -171,8 +174,12 @@ def structure_node(smiles_list: list[str]) -> (list[str], str, list):
   img = Draw.MolsToGridImage(all_mols, molsPerRow=3, subImgSize=(250, 250))
 
   #save the image as current_image.png
-  pic = img.data
-  with open('current_image.png', 'wb') as f:
-    f.write(pic)
+  try:
+    img.save('current_image.png')
+  except:
+    pic = img.data
+    with open('current_image.png', 'wb') as f:
+      f.write(pic)
   img = Image.open('current_image.png')
+  
   return all_structures, output_string, img

@@ -268,9 +268,13 @@ def getbioactives_node(chembl_ids_list: list[str]) -> (list[str], str):
       bioactives_string += f'=========================================================================================\n'
       bioactives_images.append(None)
 
-  pic = img.data
-  with open('current_image.png', 'wb') as f:
-    f.write(pic)
+  img = bioactives_images[0]
+  try:
+    img.save('current_image.png')
+  except:
+    pic = img.data
+    with open('current_image.png', 'wb') as f:
+      f.write(pic)
   img = Image.open('current_image.png')
 
   return bioactives_list, bioactives_string, img
@@ -403,7 +407,7 @@ def gpt_node(chembl_id: str) -> (list[str], str, Image.Image):
   # if f'{chembl_id}_bioactives.csv' does not exist, call the bioactives node
   chembl_id = chembl_id.upper()
   if not os.path.exists(f'{chembl_id}_bioactives.csv'):
-    _, _, _ = getbioactives_node([chembl_id])
+    _, _, _ = getbioactives_node_func([chembl_id])
 
   try:
     df = pd.read_csv(f'{chembl_id}_bioactives.csv')
@@ -756,3 +760,128 @@ def target_node(search_descriptors: list[str]):
     total_targets_string += targets_string
 
   return total_targets_list, total_targets_string, None
+
+def getbioactives_node_func(chembl_ids_list: list[str]) -> (list[str], str):
+  '''
+    Accepts a Chembl ID and get all bioactives molecule SMILES and IC50s for that ID
+      Args:
+        chembl_id: the chembl ID to query
+      Returns:
+        bioactives_list: a list of the bioactive molecules for each chembl ID
+        bioactives_string: a string containing the results of the search.
+        bioactives_images: a list of images for each bioactive molecule.
+  '''
+  print("Get bioactives tool")
+  print('===================================================')
+
+  bioactives_list = []
+  bioactives_images = []
+  bioactives_string = ''
+
+  for chembl_id in chembl_ids_list:
+    try:
+      #check if f'{chembl_id}_bioactives.csv' exists
+      chembl_id = chembl_id.upper()
+      if os.path.exists(f'{chembl_id}_bioactives.csv'):
+        print(f'Found {chembl_id}_bioactives.csv')
+        total_bioact_df = pd.read_csv(f'{chembl_id}_bioactives.csv')
+        print(f"number of records: {len(total_bioact_df)}")
+      else:
+
+        compounds = new_client.molecule
+        bioact = new_client.activity
+
+        bioact_chosen = bioact.filter(target_chembl_id=chembl_id, type="IC50", relation="=").only(
+            "molecule_chembl_id",
+            "type",
+            "standard_units",
+            "relation",
+            "standard_value",
+        )
+
+        chembl_ids = []
+        ic50s = []
+        for record in bioact_chosen:
+            if record["standard_units"] == 'nM':
+                chembl_ids.append(record["molecule_chembl_id"])
+                ic50s.append(float(record["standard_value"]))
+
+        bioact_dict = {'chembl_ids' : chembl_ids, 'IC50s': ic50s}
+        bioact_df = pd.DataFrame.from_dict(bioact_dict)
+        bioact_df.drop_duplicates(subset=["chembl_ids"], keep= "last")
+        print(f"Number of records: {len(bioact_df)}")
+        print(bioact_df.shape)
+
+        compounds_provider = compounds.filter(molecule_chembl_id__in=bioact_df["chembl_ids"].to_list()).only(
+            "molecule_chembl_id",
+            "molecule_structures"
+        )
+
+        cids_list = []
+        smiles_list = []
+
+        for record in compounds_provider:
+            cid = record['molecule_chembl_id']
+            cids_list.append(cid)
+
+            if record['molecule_structures']:
+                if record['molecule_structures']['canonical_smiles']:
+                    smile = record['molecule_structures']['canonical_smiles']
+                else:
+                    print("No canonical smiles")
+                    smile = None
+            else:
+                print('no structures')
+                smile = None
+            smiles_list.append(smile)
+
+        new_dict = {'SMILES': smiles_list, 'chembl_ids_2': cids_list}
+        new_df = pd.DataFrame.from_dict(new_dict)
+
+        total_bioact_df = pd.merge(bioact_df, new_df, left_on='chembl_ids', right_on='chembl_ids_2')
+        print(f"number of records: {len(total_bioact_df)}")
+
+        total_bioact_df.drop_duplicates(subset=["chembl_ids"], keep= "last")
+        print(f"number of records after removing duplicates: {len(total_bioact_df)}")
+
+        total_bioact_df.dropna(axis=0, how='any', inplace=True)
+        total_bioact_df.drop(["chembl_ids_2"],axis=1,inplace=True)
+        print(f"number of records after dropping Null values: {len(total_bioact_df)}")
+
+        total_bioact_df.sort_values(by=["IC50s"],inplace=True)
+
+        if len(total_bioact_df) > 0:
+          total_bioact_df.to_csv(f'{chembl_id}_bioactives.csv')
+
+      limit = 50
+      if len(total_bioact_df) > limit:
+        total_bioact_df = total_bioact_df.iloc[:limit]
+
+      bioact_tuple_list = []
+      bioactives_string += f'Results for top bioactivity (IC50 value) for molecules in ChEMBL ID: {chembl_id}. \n'
+      for smile, ic50 in zip(total_bioact_df['SMILES'], total_bioact_df['IC50s']):
+        bioactives_string += f'Molecule SMILES: {smile}, IC50 (nM): {ic50}\n'
+        bioact_tuple_list.append((smile, ic50))
+      bioactives_string += f'=========================================================================================\n'
+
+      mols = [Chem.MolFromSmiles(smile) for smile in total_bioact_df['SMILES'].to_list()]
+      legends = [f'IC50: {ic50}' for ic50 in total_bioact_df['IC50s'].to_list()]
+      img = MolsToGridImage(mols, molsPerRow=5, legends=legends, subImgSize=(200,200))
+      bioactives_images.append(img)
+      bioactives_list.append(bioact_tuple_list)
+    except: 
+      bioactives_list.append([])
+      bioactives_string += f'No bioactives found for ChEMBL ID: {chembl_id}\n'      
+      bioactives_string += f'=========================================================================================\n'
+      bioactives_images.append(None)
+
+  img = bioactives_images[0]
+  try:
+    img.save('current_image.png')
+  except:
+    pic = img.data
+    with open('current_image.png', 'wb') as f:
+      f.write(pic)
+  img = Image.open('current_image.png')
+
+  return bioactives_list, bioactives_string, img
