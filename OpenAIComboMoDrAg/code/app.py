@@ -47,19 +47,20 @@ sys_message = SystemMessage(content="You are a helpful cat who says nyan and meo
 global messages
 messages = [sys_message]
 
+@spaces.GPU
 def start_chat():
   '''
   '''
   global chat_history, messages, reasoning
   chat_history = []
   reasoning = []
-  messages.append(sys_message)
+  messages = [sys_message]
 
 @spaces.GPU
-def chat_turn(prompt: str, chat_display):
+def chat_turn(prompt: str):
   '''
   '''  
-  global messages, chat_history, reasoning
+  global chat_history, messages, reasoning
   human_message = HumanMessage(content=prompt)
   messages.append(human_message)
   local_history = [prompt]
@@ -122,8 +123,8 @@ with gr.Blocks(fill_height=True) as OpenAIMoDrAg:
   clear = gr.ClearButton([msg, chat])
   img_box = gr.Image()
   reasoning_box = gr.Textbox(label="Tool logs", lines = 20)
-  msg.submit(chat_turn, [msg, chat], [msg, img_box, chat]).then(send_reasoning, [], [reasoning_box])
-  sub_button.click(chat_turn, [msg, chat], [msg, img_box, chat])
+  msg.submit(chat_turn, [msg], [msg, img_box, chat]).then(send_reasoning, [], [reasoning_box])
+  sub_button.click(chat_turn, [msg], [msg, img_box, chat])
   clear.click(start_chat, [], [])
 
 OpenAIMoDrAg.launch(mcp_server = True)
