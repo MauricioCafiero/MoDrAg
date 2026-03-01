@@ -45,7 +45,7 @@ prompts_list = [
     [["CHEMBL2039"]],  # getbioactives_node(chembl_ids_list)
     [["[NH3+]CCc1ccc(O)cc1"], "CHEMBL2039"],  # predict_node(smiles_list_in, chembl_id)
     #["CHEMBL2039"],  # gpt_node(chembl_id)
-    [["6YT5"]],  # pdb_node(test_pdb_list)
+    [["2A3R"]],  # pdb_node(test_pdb_list)
     [["DNA gyrase"]],  # find_node(test_protein_list)
     [["[NH3+]CCc1ccc(O)cc1"], "DRD2"],  # docking_node(smiles_list, query_protein)
     [["phenylketonuria"]],  # target_node(search_descriptors)
@@ -68,15 +68,105 @@ truths_list = [
     # From modrag_protein_functions.py
     [['Q5SHZ4', 'P0AES4', 'Q08582', 'P33012', 'P0AES6']],  # uniprot_node
     [[5518, 51]],  # listbioactives_node
-    50,  # getbioactives_node
-    10995.537239000963,  # predict_node
+    [[('Cc1cc2c(nn1)-c1cc(OCCCC(F)(F)F)ccc1C2=O', 0.014), ('C#CCN(C)[C@H](C)Cc1ccccc1', 0.017), 
+      ('C#CCN(C)[C@H](C)Cc1ccccc1', 0.017), ('C[C@H](NCc1ccc(OCc2cccc(F)c2)cc1)C(N)=O', 0.023), 
+      ('O=C(O)c1coc2ccccc2c1=O', 0.048), ('C#CCN[C@@H]1CCc2ccccc21', 0.05), 
+      ('Cc1ccc2oc(=O)c(-c3cccc(Br)c3)cc2c1', 0.134), ('O=C(Nc1ccc(Cl)c(Cl)c1)c1ccc2[nH]ccc2c1', 0.227), 
+      ('Cc1ccc(-c2cc3cc(C)ccc3oc2=O)cc1', 0.308), ('Cc1ccc(-c2cc3cc(C)ccc3oc2=O)cc1', 0.3085), 
+      ('Cc1ccc(-c2cc3cc(C)ccc3oc2=O)cc1', 0.31), ('O=C1CCc2cc(OCCCC(F)(F)F)ccc21', 0.318), 
+      ('C#CCNC1CCc2c(SCCc3cccc(C)c3)cccc21', 0.35), ('O=C1CCc2ccc(OCc3ccccc3F)cc2O1', 0.37), 
+      ('O=c1cc(CCCl)c2ccc(OCc3cccc(Cl)c3)cc2o1', 0.37), ('Cn1ncc2cc(C(=O)Nc3ccc(Cl)c(Cl)c3)ccc21', 0.386), 
+      ('Cn1ncc2cc(C(=O)Nc3ccc(Cl)c(Cl)c3)ccc21', 0.386), ('O=C(Nc1cccc(Cl)c1)c1coc2ccccc2c1=O', 0.4), 
+      ('O=c1ccc2ccc(OCc3ccc(Br)cc3)cc2o1', 0.5), ('O=C(Nc1ccc(Cl)c(Cl)c1)c1ccc2[nH]ncc2c1', 0.586), 
+      ('O=C(Nc1ccc(Cl)c(Cl)c1)c1ccc2[nH]ncc2c1', 0.586), ('O=C(Nc1ccc(Cl)c(Cl)c1)c1ccc2[nH]ncc2c1', 0.586), 
+      ('COC(=O)c1cc2ccc(OCc3cccc(F)c3)cc2oc1=O', 0.588), ('Clc1ccc(/N=C/c2ccc3[nH]ncc3c2)cc1Cl', 0.612), 
+      ('O=C1Nc2ccc(CCCCc3ccccc3)cc2C1=O', 0.66), ('Cn1ncc2cc(C(=O)Nc3ccc(F)c(Cl)c3)ccc21', 0.662), 
+      ('O=C(Nc1ccc(Cl)c(F)c1)c1ccc2[nH]ncc2c1', 0.668), ('Cc1ccc(NC(=O)c2coc3ccccc3c2=O)cc1C', 0.67), 
+      ('O=C(Nc1ccc(F)c(Cl)c1)c1ccc2[nH]ncc2c1', 0.679), ('O=C(Nc1ccc(F)c(Cl)c1)c1ccc2[nH]ncc2c1', 0.679), 
+      ('COc1cccc(Cn2ccc3c(N4CCC(OC)CC4)nc4ccccc4c32)c1', 0.7), ('COc1ccc(-c2cc3cc(C)ccc3oc2=O)cc1Br', 0.74), 
+      ('C#CCCCCOc1ccc2c(C)cc(=O)oc2c1', 0.77), ('COc1cccc(-c2cc3cc(C)ccc3oc2=O)c1', 0.8), 
+      ('Cc1c(Cl)c(=O)oc2cc(OCc3ccc(Br)cc3)ccc12', 0.8), ('COC1CCN(c2nc3ccccc3c3c2ccn3Cc2cccc(Cl)c2)CC1', 0.8), 
+      ('COc1cccc(-c2cc3cc(C)ccc3oc2=O)c1', 0.8026), ('CCCCCCOc1ccc2cc(C(=O)OC)c(=O)oc2c1', 0.875), 
+      ('Cc1c(C)c2ccc(OCc3nnc(C(C)C)s3)cc2oc1=O', 0.9), ('Cc1cc(=O)oc2cc(OCc3ccc(Br)cc3)ccc12', 0.9), 
+      ('COc1cccc(-c2cc3cc(Cl)ccc3oc2=O)c1', 1.0), ('Cn1ncc2cc(/C=N/c3ccc(Cl)c(Cl)c3)ccc21', 1.03), 
+      ('O=C(Nc1ccccc1Br)c1coc2ccccc2c1=O', 1.03), ('COCCn1ncc2cc(C(=O)Nc3ccc(Cl)c(Cl)c3)ccc21', 1.08), 
+      ('Cc1c(C)c2ccc(OCc3ccc(F)c(F)c3)cc2oc1=O', 1.1), ('O=C1CCCc2ccc(OCc3ccc(Cl)cc3)cc21', 1.1), 
+      ('O=C(Nc1ccc2[nH]ccc2n1)c1ccc(Cl)c(Cl)c1', 1.11), ('Cc1c(C)c2ccc(OCc3ccc(F)c(F)c3)cc2oc1=O', 1.14), 
+      ('O=C(Nc1ccc(Br)cc1)c1coc2ccccc2c1=O', 1.15), ('C=C(Br)COc1ccc2c3c(c(=O)oc2c1C)CCC3', 1.18)]],  # getbioactives_node
+    [10995.537239000963],  # predict_node
     #None,  # gpt_node (commented out)
-    12,  # pdb_node
+    [[
+'MET', 'GLU', 'LEU', 'ILE', 'GLN', 'ASP', 'THR', 'SER', 'ARG', 'PRO', 'PRO', 'LEU', 'GLU', 'TYR', 'VAL', 'LYS',
+'GLY', 'VAL', 'PRO', 'LEU', 'ILE', 'LYS', 'TYR', 'PHE', 'ALA', 'GLU', 'ALA', 'LEU', 'GLY', 'PRO', 'LEU', 'GLN',
+'SER', 'PHE', 'GLN', 'ALA', 'ARG', 'PRO', 'ASP', 'ASP', 'LEU', 'LEU', 'ILE', 'ASN', 'THR', 'TYR', 'PRO', 'LYS',
+'SER', 'GLY', 'THR', 'THR', 'TRP', 'VAL', 'SER', 'GLN', 'ILE', 'LEU', 'ASP', 'MET', 'ILE', 'TYR', 'GLN', 'GLY',
+'GLY', 'ASP', 'LEU', 'GLU', 'LYS', 'CYS', 'ASN', 'ARG', 'ALA', 'PRO', 'ILE', 'TYR', 'VAL', 'ARG', 'VAL', 'PRO',
+'PHE', 'LEU', 'GLU', 'VAL', 'ASN', 'ASP', 'PRO', 'GLY', 'GLU', 'PRO', 'SER', 'GLY', 'LEU', 'GLU', 'THR', 'LEU',
+'LYS', 'ASP', 'THR', 'PRO', 'PRO', 'PRO', 'ARG', 'LEU', 'ILE', 'LYS', 'SER', 'HIS', 'LEU', 'PRO', 'LEU', 'ALA',
+'LEU', 'LEU', 'PRO', 'GLN', 'THR', 'LEU', 'LEU', 'ASP', 'GLN', 'LYS', 'VAL', 'LYS', 'VAL', 'VAL', 'TYR', 'VAL',
+'ALA', 'ARG', 'ASN', 'PRO', 'LYS', 'ASP', 'VAL', 'ALA', 'VAL', 'SER', 'TYR', 'TYR', 'HIS', 'PHE', 'HIS', 'ARG',
+'MET', 'GLU', 'LYS', 'ALA', 'HIS', 'PRO', 'GLU', 'PRO', 'GLY', 'THR', 'TRP', 'ASP', 'SER', 'PHE', 'LEU', 'GLU',
+'LYS', 'PHE', 'MET', 'ALA', 'GLY', 'GLU', 'VAL', 'SER', 'TYR', 'GLY', 'SER', 'TRP', 'TYR', 'GLN', 'HIS', 'VAL',
+'GLN', 'GLU', 'TRP', 'TRP', 'GLU', 'LEU', 'SER', 'ARG', 'THR', 'HIS', 'PRO', 'VAL', 'LEU', 'TYR', 'LEU', 'PHE',
+'TYR', 'GLU', 'ASP', 'MET', 'LYS', 'GLU', 'ASN', 'PRO', 'LYS', 'ARG', 'GLU', 'ILE', 'GLN', 'LYS', 'ILE', 'LEU',
+'GLU', 'PHE', 'VAL', 'GLY', 'ARG', 'SER', 'LEU', 'PRO', 'GLU', 'GLU', 'THR', 'MET', 'ASP', 'PHE', 'MET', 'VAL',
+'GLN', 'HIS', 'THR', 'SER', 'PHE', 'LYS', 'GLU', 'MET', 'LYS', 'LYS', 'ASN', 'PRO', 'MET', 'THR', 'ASN', 'TYR',
+'THR', 'THR', 'VAL', 'PRO', 'GLN', 'GLU', 'LEU', 'MET', 'ASP', 'HIS', 'SER', 'ILE', 'SER', 'PRO', 'PHE', 'MET',
+'ARG', 'LYS', 'GLY', 'MET', 'ALA', 'GLY', 'ASP', 'TRP', 'LYS', 'THR', 'THR', 'PHE', 'THR', 'VAL', 'ALA', 'GLN',
+'ASN', 'GLU', 'ARG', 'PHE', 'ASP', 'ALA', 'ASP', 'TYR', 'ALA', 'GLU', 'LYS', 'MET', 'ALA', 'GLY', 'CYS', 'SER',
+'LEU', 'SER', 'PHE', 'ARG', 'SER', 'GLU', 'LEU',
+],
+[
+'MET', 'GLU', 'LEU', 'ILE', 'GLN', 'ASP', 'THR', 'SER', 'ARG', 'PRO', 'PRO', 'LEU', 'GLU', 'TYR', 'VAL', 'LYS',
+'GLY', 'VAL', 'PRO', 'LEU', 'ILE', 'LYS', 'TYR', 'PHE', 'ALA', 'GLU', 'ALA', 'LEU', 'GLY', 'PRO', 'LEU', 'GLN',
+'SER', 'PHE', 'GLN', 'ALA', 'ARG', 'PRO', 'ASP', 'ASP', 'LEU', 'LEU', 'ILE', 'ASN', 'THR', 'TYR', 'PRO', 'LYS',
+'SER', 'GLY', 'THR', 'THR', 'TRP', 'VAL', 'SER', 'GLN', 'ILE', 'LEU', 'ASP', 'MET', 'ILE', 'TYR', 'GLN', 'GLY',
+'GLY', 'ASP', 'LEU', 'GLU', 'LYS', 'CYS', 'ASN', 'ARG', 'ALA', 'PRO', 'ILE', 'TYR', 'VAL', 'ARG', 'VAL', 'PRO',
+'PHE', 'LEU', 'GLU', 'VAL', 'ASN', 'ASP', 'PRO', 'GLY', 'GLU', 'PRO', 'SER', 'GLY', 'LEU', 'GLU', 'THR', 'LEU',
+'LYS', 'ASP', 'THR', 'PRO', 'PRO', 'PRO', 'ARG', 'LEU', 'ILE', 'LYS', 'SER', 'HIS', 'LEU', 'PRO', 'LEU', 'ALA',
+'LEU', 'LEU', 'PRO', 'GLN', 'THR', 'LEU', 'LEU', 'ASP', 'GLN', 'LYS', 'VAL', 'LYS', 'VAL', 'VAL', 'TYR', 'VAL',
+'ALA', 'ARG', 'ASN', 'PRO', 'LYS', 'ASP', 'VAL', 'ALA', 'VAL', 'SER', 'TYR', 'TYR', 'HIS', 'PHE', 'HIS', 'ARG',
+'MET', 'GLU', 'LYS', 'ALA', 'HIS', 'PRO', 'GLU', 'PRO', 'GLY', 'THR', 'TRP', 'ASP', 'SER', 'PHE', 'LEU', 'GLU',
+'LYS', 'PHE', 'MET', 'ALA', 'GLY', 'GLU', 'VAL', 'SER', 'TYR', 'GLY', 'SER', 'TRP', 'TYR', 'GLN', 'HIS', 'VAL',
+'GLN', 'GLU', 'TRP', 'TRP', 'GLU', 'LEU', 'SER', 'ARG', 'THR', 'HIS', 'PRO', 'VAL', 'LEU', 'TYR', 'LEU', 'PHE',
+'TYR', 'GLU', 'ASP', 'MET', 'LYS', 'GLU', 'ASN', 'PRO', 'LYS', 'ARG', 'GLU', 'ILE', 'GLN', 'LYS', 'ILE', 'LEU',
+'GLU', 'PHE', 'VAL', 'GLY', 'ARG', 'SER', 'LEU', 'PRO', 'GLU', 'GLU', 'THR', 'MET', 'ASP', 'PHE', 'MET', 'VAL',
+'GLN', 'HIS', 'THR', 'SER', 'PHE', 'LYS', 'GLU', 'MET', 'LYS', 'LYS', 'ASN', 'PRO', 'MET', 'THR', 'ASN', 'TYR',
+'THR', 'THR', 'VAL', 'PRO', 'GLN', 'GLU', 'LEU', 'MET', 'ASP', 'HIS', 'SER', 'ILE', 'SER', 'PRO', 'PHE', 'MET',
+'ARG', 'LYS', 'GLY', 'MET', 'ALA', 'GLY', 'ASP', 'TRP', 'LYS', 'THR', 'THR', 'PHE', 'THR', 'VAL', 'ALA', 'GLN',
+'ASN', 'GLU', 'ARG', 'PHE', 'ASP', 'ALA', 'ASP', 'TYR', 'ALA', 'GLU', 'LYS', 'MET', 'ALA', 'GLY', 'CYS', 'SER',
+'LEU', 'SER', 'PHE', 'ARG', 'SER', 'GLU', 'LEU',
+]],  # pdb_node
     [['3QTD', '1VL4', '1VPB', '5NJ5', '3NUH']],  # find_node
     [-6.3],  # docking_node
     [['PAH', 'DNAJC12', 'NSUN2', 'COL1A1', 'PI4KA']],  # target_node
     # From modrag_task_graphs.py
-    50,  # get_actives_for_protein
+    [[('Cc1cc2c(nn1)-c1cc(OCCCC(F)(F)F)ccc1C2=O', 0.014), ('C#CCN(C)[C@H](C)Cc1ccccc1', 0.017), 
+      ('C#CCN(C)[C@H](C)Cc1ccccc1', 0.017), ('C[C@H](NCc1ccc(OCc2cccc(F)c2)cc1)C(N)=O', 0.023), 
+      ('O=C(O)c1coc2ccccc2c1=O', 0.048), ('C#CCN[C@@H]1CCc2ccccc21', 0.05), 
+      ('Cc1ccc2oc(=O)c(-c3cccc(Br)c3)cc2c1', 0.134), ('O=C(Nc1ccc(Cl)c(Cl)c1)c1ccc2[nH]ccc2c1', 0.227), 
+      ('Cc1ccc(-c2cc3cc(C)ccc3oc2=O)cc1', 0.308), ('Cc1ccc(-c2cc3cc(C)ccc3oc2=O)cc1', 0.3085), 
+      ('Cc1ccc(-c2cc3cc(C)ccc3oc2=O)cc1', 0.31), ('O=C1CCc2cc(OCCCC(F)(F)F)ccc21', 0.318), 
+      ('C#CCNC1CCc2c(SCCc3cccc(C)c3)cccc21', 0.35), ('O=C1CCc2ccc(OCc3ccccc3F)cc2O1', 0.37), 
+      ('O=c1cc(CCCl)c2ccc(OCc3cccc(Cl)c3)cc2o1', 0.37), ('Cn1ncc2cc(C(=O)Nc3ccc(Cl)c(Cl)c3)ccc21', 0.386), 
+      ('Cn1ncc2cc(C(=O)Nc3ccc(Cl)c(Cl)c3)ccc21', 0.386), ('O=C(Nc1cccc(Cl)c1)c1coc2ccccc2c1=O', 0.4), 
+      ('O=c1ccc2ccc(OCc3ccc(Br)cc3)cc2o1', 0.5), ('O=C(Nc1ccc(Cl)c(Cl)c1)c1ccc2[nH]ncc2c1', 0.586), 
+      ('O=C(Nc1ccc(Cl)c(Cl)c1)c1ccc2[nH]ncc2c1', 0.586), ('O=C(Nc1ccc(Cl)c(Cl)c1)c1ccc2[nH]ncc2c1', 0.586), 
+      ('COC(=O)c1cc2ccc(OCc3cccc(F)c3)cc2oc1=O', 0.588), ('Clc1ccc(/N=C/c2ccc3[nH]ncc3c2)cc1Cl', 0.612), 
+      ('O=C1Nc2ccc(CCCCc3ccccc3)cc2C1=O', 0.66), ('Cn1ncc2cc(C(=O)Nc3ccc(F)c(Cl)c3)ccc21', 0.662), 
+      ('O=C(Nc1ccc(Cl)c(F)c1)c1ccc2[nH]ncc2c1', 0.668), ('Cc1ccc(NC(=O)c2coc3ccccc3c2=O)cc1C', 0.67), 
+      ('O=C(Nc1ccc(F)c(Cl)c1)c1ccc2[nH]ncc2c1', 0.679), ('O=C(Nc1ccc(F)c(Cl)c1)c1ccc2[nH]ncc2c1', 0.679), 
+      ('COc1cccc(Cn2ccc3c(N4CCC(OC)CC4)nc4ccccc4c32)c1', 0.7), ('COc1ccc(-c2cc3cc(C)ccc3oc2=O)cc1Br', 0.74), 
+      ('C#CCCCCOc1ccc2c(C)cc(=O)oc2c1', 0.77), ('COc1cccc(-c2cc3cc(C)ccc3oc2=O)c1', 0.8), 
+      ('Cc1c(Cl)c(=O)oc2cc(OCc3ccc(Br)cc3)ccc12', 0.8), ('COC1CCN(c2nc3ccccc3c3c2ccn3Cc2cccc(Cl)c2)CC1', 0.8), 
+      ('COc1cccc(-c2cc3cc(C)ccc3oc2=O)c1', 0.8026), ('CCCCCCOc1ccc2cc(C(=O)OC)c(=O)oc2c1', 0.875), 
+      ('Cc1c(C)c2ccc(OCc3nnc(C(C)C)s3)cc2oc1=O', 0.9), ('Cc1cc(=O)oc2cc(OCc3ccc(Br)cc3)ccc12', 0.9), 
+      ('COc1cccc(-c2cc3cc(Cl)ccc3oc2=O)c1', 1.0), ('Cn1ncc2cc(/C=N/c3ccc(Cl)c(Cl)c3)ccc21', 1.03), 
+      ('O=C(Nc1ccccc1Br)c1coc2ccccc2c1=O', 1.03), ('COCCn1ncc2cc(C(=O)Nc3ccc(Cl)c(Cl)c3)ccc21', 1.08), 
+      ('Cc1c(C)c2ccc(OCc3ccc(F)c(F)c3)cc2oc1=O', 1.1), ('O=C1CCCc2ccc(OCc3ccc(Cl)cc3)cc21', 1.1), 
+      ('O=C(Nc1ccc2[nH]ccc2n1)c1ccc(Cl)c(Cl)c1', 1.11), ('Cc1c(C)c2ccc(OCc3ccc(F)c(F)c3)cc2oc1=O', 1.14), 
+      ('O=C(Nc1ccc(Br)cc1)c1coc2ccccc2c1=O', 1.15), ('C=C(Br)COc1ccc2c3c(c(=O)oc2c1C)CCC3', 1.18)]],  # getbioactives_node
+    [10995.537239000963],  # get_actives_for_protein
     15228.239232991393,  # get_predictions_for_protein
     [-6.4, -5.6],  # dock_from_names
 ]
@@ -141,7 +231,7 @@ def test_results(result, truth, tool_name):
         print(f"✗ {tool_name}: Test error - {e}")
         return False
 
-def run_tests():
+def run_tests(prompts_list = prompts_list, truths_list = truths_list, tools_list = tools_list): 
     '''Run tests for all tools and summarize results.'''
 
     results = []
