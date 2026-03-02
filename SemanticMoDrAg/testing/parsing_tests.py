@@ -255,6 +255,7 @@ def clean_and_test_results(results, truth, method_name, time_taken):
       results = ast.literal_eval(results)
     except:
       print('Failed to parse results')
+      return f'{method_name} failed to parse results and took {time_taken:.3f} seconds'
 
   for key, value in results.items():
     if len(value) != 0:
