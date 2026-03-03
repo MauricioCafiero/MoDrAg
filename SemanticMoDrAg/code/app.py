@@ -6,7 +6,7 @@ from PIL import Image
 import io, json, pprint as pp
 from scholarly import scholarly, ProxyGenerator
 import numpy as np
-import ast
+import ast, base64
 from gradio_client import Client, handle_file
 
 # imports for HF Spaces
@@ -875,5 +875,13 @@ with gr.Blocks() as modrag:
   clear.click(new_chat.reset_chat)
   hard_clear.click(new_chat.hard_reset_chat)
   upload_btn.upload(new_chat.uploaded_pic_chat, [upload_btn], [msg, chatbot, image_holder])
+
+  @gr.render(inputs=top)
+  def get_speech(args):
+    audio_file = 'MoDrAg_hello.mp3'
+    with open(audio_file, 'rb') as audio_bytes:
+                audio = base64.b64encode(audio_bytes.read()).decode("utf-8")
+    audio_player = f'<audio src="data:audio/mpeg;base64,{audio}" controls autoplay></audio>'
+    talk_ele = gr.HTML(audio_player)
 
 modrag.launch(debug=False, share=True)
