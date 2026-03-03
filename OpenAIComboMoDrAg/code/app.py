@@ -6,6 +6,7 @@ from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
 import gradio as gr
 import spaces
+import base64
 
 from PIL import Image
 from collections import Counter
@@ -107,7 +108,7 @@ def send_reasoning():
 start_chat()
 
 with gr.Blocks(fill_height=True) as OpenAIMoDrAg:
-  gr.Markdown('''
+  top = gr.Markdown('''
               # MoDrAg Chatbot using ChatGPT 5.2
               - The *MOdular DRug design AGent*!
               - This chatbot can answer questions about molecules, proteins, and their interactions.
@@ -126,5 +127,13 @@ with gr.Blocks(fill_height=True) as OpenAIMoDrAg:
   msg.submit(chat_turn, [msg], [msg, img_box, chat]).then(send_reasoning, [], [reasoning_box])
   sub_button.click(chat_turn, [msg], [msg, img_box, chat])
   clear.click(start_chat, [], [])
+
+  @gr.render(inputs=top)
+  def get_speech(args):
+    audio_file = 'MoDrAg/SemanticMoDrAg/data/MoDrAg_hello.mp3'
+    with open(audio_file, 'rb') as audio_bytes:
+                audio = base64.b64encode(audio_bytes.read()).decode("utf-8")
+    audio_player = f'<audio src="data:audio/mpeg;base64,{audio}" controls autoplay></audio>'
+    talk_ele = gr.HTML(audio_player)
 
 OpenAIMoDrAg.launch(mcp_server = True)
