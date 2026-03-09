@@ -130,7 +130,7 @@ with gr.Blocks(fill_height=True) as OpenAIMoDrAg:
 
   @gr.render(inputs=top)
   def get_speech(args):
-    audio_file = 'MoDrAg/SemanticMoDrAg/data/MoDrAg_hello.mp3'
+    audio_file = 'MoDrAg_hello.mp3'
     with open(audio_file, 'rb') as audio_bytes:
                 audio = base64.b64encode(audio_bytes.read()).decode("utf-8")
     audio_player = f'<audio src="data:audio/mpeg;base64,{audio}" controls autoplay></audio>'
